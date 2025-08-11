@@ -87,6 +87,11 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Health check endpoint for Railway
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
