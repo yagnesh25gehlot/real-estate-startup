@@ -19,6 +19,7 @@ RUN cd frontend && npm install
 FROM base AS frontend-builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
 COPY frontend/ ./frontend/
 WORKDIR /app/frontend
 RUN npm run build
@@ -27,6 +28,7 @@ RUN npm run build
 FROM base AS backend-builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/backend/node_modules ./backend/node_modules
 COPY backend/ ./backend/
 WORKDIR /app/backend
 RUN npm run build
