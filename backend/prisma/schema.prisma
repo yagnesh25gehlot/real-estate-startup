@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Role enum - using String instead of enum for SQLite compatibility
@@ -102,7 +102,8 @@ model Commission {
   property    Property @relation(fields: [propertyId], references: [id])
   propertyId  String
   amount      Float
-  level       Int      // Depth in MLM tree
+  level       Int      // 1, 2, 3 for different commission levels
+  status      String   @default("PENDING") // PENDING, PAID
   createdAt   DateTime @default(now())
 }
 
@@ -115,12 +116,11 @@ model CommissionConfig {
 }
 
 model Notification {
-  id          String   @id @default(uuid())
-  type        String   // PROPERTY_ADDED, PROPERTY_UPDATED, USER_SIGNUP, BOOKING_CREATED, DEALER_REQUEST
-  title       String
-  message     String
-  data        String?  // Additional data as JSON string
-  read        Boolean  @default(false)
-  adminOnly   Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // INFO, SUCCESS, WARNING, ERROR
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 } 

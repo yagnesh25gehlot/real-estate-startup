@@ -31,6 +31,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/backend/node_modules ./backend/node_modules
 COPY backend/ ./backend/
 WORKDIR /app/backend
+# Generate Prisma client before building
+RUN npx prisma generate
 RUN npm run build
 
 # Production image
