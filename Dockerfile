@@ -11,9 +11,9 @@ COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
 
 # Install dependencies
-RUN npm ci --only=production
-RUN cd backend && npm ci --only=production
-RUN cd frontend && npm ci
+RUN npm install --only=production
+RUN cd backend && npm install --only=production
+RUN cd frontend && npm install
 
 # Build the frontend
 FROM base AS frontend-builder
