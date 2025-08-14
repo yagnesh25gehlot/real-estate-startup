@@ -26,7 +26,7 @@ const DebugInfo = () => {
           userAgent: navigator.userAgent,
           localStorage: {
             user: !!localStorage.getItem('user'),
-            user: !!localStorage.getItem('user'),
+            token: !!localStorage.getItem('token'),
           }
         });
       } catch (error: any) {
