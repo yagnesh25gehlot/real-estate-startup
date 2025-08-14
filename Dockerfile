@@ -10,9 +10,9 @@ COPY package*.json ./
 COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
 
-# Install dependencies
-RUN npm install --only=production
-RUN cd backend && npm install --only=production
+# Install all dependencies (including dev dependencies for build)
+RUN npm install
+RUN cd backend && npm install
 RUN cd frontend && npm install
 
 # Build the frontend
