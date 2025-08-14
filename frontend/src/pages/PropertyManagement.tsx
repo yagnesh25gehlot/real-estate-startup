@@ -431,15 +431,27 @@ const PropertyManagement = () => {
         </div>
 
         {/* Property Edit Modal */}
-        <PropertyEditModal
-          property={selectedProperty}
-          isOpen={showPropertyModal}
-          onClose={() => {
-            setShowPropertyModal(false)
-            setSelectedProperty(null)
-          }}
-          onUpdate={fetchData}
-        />
+        {showPropertyModal && selectedProperty && (
+          <PropertyEditModal
+            property={selectedProperty}
+            onClose={() => {
+              setShowPropertyModal(false)
+              setSelectedProperty(null)
+            }}
+            onSave={async (updatedProperty) => {
+              try {
+                // Here you would typically call an API to update the property
+                console.log('Updating property:', updatedProperty)
+                await fetchData()
+                setShowPropertyModal(false)
+                setSelectedProperty(null)
+                toast.success('Property updated successfully!')
+              } catch (error) {
+                toast.error('Failed to update property')
+              }
+            }}
+          />
+        )}
       </div>
     </>
   )

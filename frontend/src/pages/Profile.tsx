@@ -20,7 +20,8 @@ import {
   CreditCard,
   Camera,
   Upload,
-  Calendar
+  Calendar,
+  IndianRupee
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { authApi } from '../services/api'
@@ -34,9 +35,9 @@ const Profile = () => {
   const [passwordLoading, setPasswordLoading] = useState(false)
   
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    mobile: user?.mobile || '',
-    aadhaar: user?.aadhaar || '',
+    name: '',
+    mobile: '',
+    aadhaar: '',
   })
   
   const [passwordData, setPasswordData] = useState({
@@ -51,7 +52,9 @@ const Profile = () => {
     confirm: false,
   })
   const [uploadingProfilePic, setUploadingProfilePic] = useState(false)
+  const [uploadingAadhaarImage, setUploadingAadhaarImage] = useState(false)
 
+  // Initialize form data when user data is available
   useEffect(() => {
     if (user) {
       setFormData({
@@ -61,6 +64,21 @@ const Profile = () => {
       })
     }
   }, [user])
+
+  // Reset form data when entering edit mode
+  const handleEditClick = () => {
+    if (user) {
+      const newFormData = {
+        name: user.name || '',
+        mobile: user.mobile || '',
+        aadhaar: user.aadhaar || '',
+      }
+      setFormData(newFormData)
+    }
+    setIsEditing(true)
+  }
+
+
 
   const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
     const errors: string[] = []
@@ -93,11 +111,32 @@ const Profile = () => {
     setLoading(true)
     
     try {
+      // Validate mobile number if provided
+      if (formData.mobile && formData.mobile.trim()) {
+        const mobileRegex = /^[6-9]\d{9}$/
+        if (!mobileRegex.test(formData.mobile.trim())) {
+          toast.error('Please enter a valid 10-digit mobile number')
+          setLoading(false)
+          return
+        }
+      }
+      
+      // Validate Aadhaar number if provided
+      if (formData.aadhaar && formData.aadhaar.trim()) {
+        const aadhaarRegex = /^[0-9]{12}$/
+        if (!aadhaarRegex.test(formData.aadhaar.trim())) {
+          toast.error('Please enter a valid 12-digit Aadhaar number')
+          setLoading(false)
+          return
+        }
+      }
+      
       const response = await authApi.updateProfile(formData)
       updateUser(response.data.data.user)
       toast.success('Profile updated successfully!')
       setIsEditing(false)
     } catch (error: any) {
+      console.error('Profile update error:', error)
       toast.error(error.response?.data?.error || 'Failed to update profile')
     } finally {
       setLoading(false)
@@ -108,13 +147,11 @@ const Profile = () => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file')
       return
     }
 
-    // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Image size should be less than 5MB')
       return
@@ -127,12 +164,46 @@ const Profile = () => {
       formData.append('profilePic', file)
       
       const response = await authApi.uploadProfilePic(formData)
-      updateUser({ ...user!, profilePic: response.data.data.profilePicUrl })
+      const profilePicUrl = response.data.data.profilePicUrl
+      updateUser({ ...user!, profilePic: profilePicUrl })
       toast.success('Profile picture updated successfully!')
     } catch (error: any) {
+      console.error('Profile pic upload error:', error)
       toast.error(error.response?.data?.error || 'Failed to upload profile picture')
     } finally {
       setUploadingProfilePic(false)
+    }
+  }
+
+  const handleAadhaarImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB')
+      return
+    }
+
+    setUploadingAadhaarImage(true)
+    
+    try {
+      const formData = new FormData()
+      formData.append('aadhaarImage', file)
+      
+      const response = await authApi.uploadAadhaarImage(formData)
+      const aadhaarImageUrl = response.data.data.aadhaarImageUrl
+      updateUser({ ...user!, aadhaarImage: aadhaarImageUrl })
+      toast.success('Aadhaar image updated successfully!')
+    } catch (error: any) {
+      console.error('Aadhaar image upload error:', error)
+      toast.error(error.response?.data?.error || 'Failed to upload aadhaar image')
+    } finally {
+      setUploadingAadhaarImage(false)
     }
   }
 
@@ -212,7 +283,7 @@ const Profile = () => {
   return (
     <>
       <Helmet>
-        <title>Profile - Property Platform</title>
+        <title>Profile - RealtyTopper</title>
       </Helmet>
 
       <div className="max-w-4xl mx-auto p-6">
@@ -238,7 +309,7 @@ const Profile = () => {
               <h2 className="text-xl font-semibold text-gray-900">Profile Information</h2>
               {!isEditing ? (
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={handleEditClick}
                   className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   <Edit className="h-4 w-4 mr-2" />
@@ -265,13 +336,17 @@ const Profile = () => {
                     <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
                       {user.profilePic ? (
                         <img 
-                          src={user.profilePic} 
+                          src={user.profilePic.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${user.profilePic}` : user.profilePic} 
                           alt="Profile" 
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                          }}
                         />
-                      ) : (
-                        <User className="h-10 w-10 text-gray-400" />
-                      )}
+                      ) : null}
+                      {!user.profilePic && <User className="h-10 w-10 text-gray-400" />}
+                      {user.profilePic && <User className="h-10 w-10 text-gray-400 hidden" />}
                     </div>
                     <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-1 rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
                       <Camera className="h-3 w-3" />
@@ -327,11 +402,102 @@ const Profile = () => {
                   <div className="p-2 bg-indigo-100 rounded-lg">
                     <CreditCard className="h-5 w-5 text-indigo-600" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm text-gray-600">Aadhaar Number</p>
                     <p className="font-medium text-gray-900">
                       {user.aadhaar ? `${user.aadhaar.slice(0, 4)}-${user.aadhaar.slice(4, 8)}-${user.aadhaar.slice(8)}` : 'Not provided'}
                     </p>
+                    
+                    {/* Aadhaar Image Section */}
+                    <div className="mt-3">
+                      <p className="text-sm text-gray-600 mb-2">Aadhaar Card Image</p>
+                      {user.aadhaarImage ? (
+                        <div className="space-y-2">
+                          <div className="relative inline-block">
+                            <img 
+                              src={user.aadhaarImage.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${user.aadhaarImage}` : user.aadhaarImage} 
+                              alt="Aadhaar Card" 
+                              className="h-24 w-32 object-cover rounded border shadow-sm"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                                e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                              }}
+                            />
+                            <div className="hidden h-24 w-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded flex items-center justify-center">
+                              <span className="text-xs text-gray-500 text-center">Image Error</span>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <label htmlFor="aadhaar-image-upload-view" className="cursor-pointer">
+                              <div className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                                <Upload className="h-3 w-3 text-blue-600" />
+                                <span className="text-xs font-medium text-blue-700">
+                                  {uploadingAadhaarImage ? 'Uploading...' : 'Update Image'}
+                                </span>
+                              </div>
+                            </label>
+                            <button
+                              onClick={() => {
+                                const img = document.createElement('img')
+                                img.src = user.aadhaarImage?.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${user.aadhaarImage}` : user.aadhaarImage || ''
+                                img.style.maxWidth = '100%'
+                                img.style.maxHeight = '80vh'
+                                img.style.objectFit = 'contain'
+                                
+                                const modal = document.createElement('div')
+                                modal.style.position = 'fixed'
+                                modal.style.top = '0'
+                                modal.style.left = '0'
+                                modal.style.width = '100%'
+                                modal.style.height = '100%'
+                                modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
+                                modal.style.display = 'flex'
+                                modal.style.alignItems = 'center'
+                                modal.style.justifyContent = 'center'
+                                modal.style.zIndex = '9999'
+                                modal.style.cursor = 'pointer'
+                                
+                                modal.appendChild(img)
+                                document.body.appendChild(modal)
+                                
+                                modal.onclick = () => {
+                                  document.body.removeChild(modal)
+                                }
+                              }}
+                              className="flex items-center space-x-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                              <Eye className="h-3 w-3 text-gray-600" />
+                              <span className="text-xs font-medium text-gray-700">View Full</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="h-24 w-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded flex items-center justify-center">
+                            <span className="text-xs text-gray-500 text-center">No Aadhaar Image</span>
+                          </div>
+                          <label htmlFor="aadhaar-image-upload-view" className="cursor-pointer">
+                            <div className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                              <Upload className="h-3 w-3 text-blue-600" />
+                              <span className="text-xs font-medium text-blue-700">
+                                {uploadingAadhaarImage ? 'Uploading...' : '📤 Upload Aadhaar Image'}
+                              </span>
+                            </div>
+                          </label>
+                        </div>
+                      )}
+                      <input
+                        id="aadhaar-image-upload-view"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAadhaarImageUpload}
+                        className="hidden"
+                        disabled={uploadingAadhaarImage}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Supported formats: JPG, PNG, GIF, SVG (Max 5MB)
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -366,17 +532,65 @@ const Profile = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Hash className="h-5 w-5 text-orange-600" />
+                {(user.role === 'DEALER' || user.role === 'ADMIN') && (
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-orange-100 rounded-lg">
+                        <Hash className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Dealer Code</p>
+                        <p className="font-medium text-gray-900 font-mono">
+                          {user.dealer?.referralCode || user.id || 'Not assigned'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {user.dealer && (
+                      <>
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <Shield className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Dealer Status</p>
+                            <p className="font-medium text-gray-900">
+                              {user.dealer.status || 'ACTIVE'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {user.dealer.commission && user.dealer.commission > 0 && (
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                              <IndianRupee className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Total Commission</p>
+                              <p className="font-medium text-gray-900">
+                                ₹{user.dealer.commission}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {user.role === 'ADMIN' && (
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <Crown className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Admin Dealer Code</p>
+                          <p className="font-medium text-gray-900 font-mono">
+                            {user.id}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Unique Code</p>
-                    <p className="font-medium text-gray-900 font-mono">
-                      {user.dealer?.referralCode || user.id}
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             ) : (
               <form onSubmit={handleProfileUpdate} className="space-y-4">
@@ -392,7 +606,7 @@ const Profile = () => {
                       type="text"
                       required
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                       className="input pl-10"
                       placeholder="Enter your full name"
                     />
@@ -427,13 +641,18 @@ const Profile = () => {
                     <input
                       id="mobile"
                       name="mobile"
-                      type="tel"
-                      value={formData.mobile}
-                      onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                      type="text"
+                      value={formData.mobile || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '')
+                        setFormData(prev => ({ ...prev, mobile: value }))
+                      }}
                       className="input pl-10"
-                      placeholder="Enter your mobile number"
+                      placeholder="Enter your 10-digit mobile number"
+                      maxLength={10}
                     />
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">Enter 10-digit mobile number (e.g., 9876543210)</p>
                 </div>
 
                 <div>
@@ -446,12 +665,65 @@ const Profile = () => {
                       id="aadhaar"
                       name="aadhaar"
                       type="text"
-                      value={formData.aadhaar}
-                      onChange={(e) => setFormData({ ...formData, aadhaar: e.target.value })}
+                      value={formData.aadhaar || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '')
+                        setFormData(prev => ({ ...prev, aadhaar: value }))
+                      }}
                       className="input pl-10"
                       placeholder="Enter 12-digit Aadhaar number"
                       maxLength={12}
                     />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Enter 12-digit Aadhaar number (e.g., 123456789012)</p>
+                </div>
+
+
+
+                {/* Aadhaar Image Upload in Edit Mode */}
+                <div>
+                  <label className="label">Aadhaar Card Image</label>
+                  <div className="space-y-3">
+                    {user.aadhaarImage && (
+                      <div className="flex items-center space-x-3">
+                        <img 
+                          src={user.aadhaarImage.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${user.aadhaarImage}` : user.aadhaarImage} 
+                          alt="Current Aadhaar" 
+                          className="h-16 w-20 object-cover rounded border"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                          }}
+                        />
+                        <div className="hidden h-16 w-20 bg-gray-100 border-2 border-dashed border-gray-300 rounded flex items-center justify-center">
+                          <span className="text-xs text-gray-500 text-center">Image Error</span>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <p>Current Aadhaar Image</p>
+                          <p className="text-xs text-gray-500">Click upload to replace</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <label htmlFor="aadhaar-image-upload-edit" className="cursor-pointer">
+                      <div className="flex items-center space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                        <Upload className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-700">
+                          {uploadingAadhaarImage ? 'Uploading...' : '📤 Upload/Update Aadhaar Image'}
+                        </span>
+                      </div>
+                    </label>
+                    <input
+                      id="aadhaar-image-upload-edit"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAadhaarImageUpload}
+                      className="hidden"
+                      disabled={uploadingAadhaarImage}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Supported formats: JPG, PNG, GIF, SVG (Max 5MB)
+                    </p>
                   </div>
                 </div>
 

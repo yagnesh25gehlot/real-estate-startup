@@ -38,17 +38,19 @@ export interface PropertyFilters {
   maxPrice?: number;
   status?: string;
   dealerId?: string;
+  ownerId?: string;
 }
 
 export class PropertyService {
   static async createProperty(data: CreatePropertyData, ownerId: string): Promise<Property> {
     try {
-      let mediaUrls: string[] = [];
+      let mediaUrls: string = '[]';
 
       // Upload media files to S3
       if (data.mediaFiles && data.mediaFiles.length > 0) {
         const uploadResults = await S3Uploader.uploadMultipleFiles(data.mediaFiles);
-        mediaUrls = uploadResults.map(result => result.url);
+        const urls = uploadResults.map(result => result.url);
+        mediaUrls = JSON.stringify(urls);
       }
 
       const property = await prisma.property.create({
@@ -57,7 +59,7 @@ export class PropertyService {
           description: data.description,
           type: data.type,
           location: data.location,
-          address: data.address,
+          address: data.address || '',
           latitude: data.latitude,
           longitude: data.longitude,
           price: data.price,
@@ -77,7 +79,10 @@ export class PropertyService {
 
       // Send notification to admin
       try {
-        await NotificationService.notifyPropertyAdded(property, property.owner);
+        const owner = await prisma.user.findUnique({ where: { id: property.ownerId } });
+        if (owner) {
+          await NotificationService.notifyPropertyAdded(property, owner);
+        }
       } catch (notificationError) {
         console.error('Failed to send property added notification:', notificationError);
         // Don't fail the property creation if notification fails
@@ -85,7 +90,8 @@ export class PropertyService {
 
       return property;
     } catch (error) {
-      throw createError('Failed to create property', 500);
+      console.error('Property creation error:', error);
+      throw createError(`Failed to create property: ${error.message}`, 500);
     }
   }
 
@@ -121,6 +127,10 @@ export class PropertyService {
 
       if (filters.dealerId) {
         where.dealerId = filters.dealerId;
+      }
+
+      if (filters.ownerId) {
+        where.ownerId = filters.ownerId;
       }
 
       const [properties, total] = await Promise.all([
@@ -268,12 +278,28 @@ export class PropertyService {
 
       // Handle media files if provided
       let mediaUrls = property.mediaUrls;
-      if (data.mediaFiles && data.mediaFiles.length > 0) {
+      
+      // If mediaUrls is provided in the data, use it (this handles the frontend's image management)
+      if (data.mediaUrls) {
+        mediaUrls = data.mediaUrls;
+      } else if (data.mediaFiles && data.mediaFiles.length > 0) {
+        // Handle new file uploads (legacy support)
         const uploadResults = await Promise.all(
           data.mediaFiles.map(file => S3Uploader.uploadFile(file, 'properties'))
         );
         const newUrls = uploadResults.map(result => typeof result === 'string' ? result : result.url);
-        mediaUrls = [...mediaUrls, ...newUrls];
+        
+        // Parse existing mediaUrls if it's a JSON string, otherwise use empty array
+        let existingUrls: string[] = [];
+        try {
+          existingUrls = JSON.parse(mediaUrls || '[]');
+        } catch (e) {
+          existingUrls = [];
+        }
+        
+        // Combine existing and new URLs
+        const allUrls = [...existingUrls, ...newUrls];
+        mediaUrls = JSON.stringify(allUrls);
       }
 
       // Prepare update data
@@ -298,7 +324,8 @@ export class PropertyService {
         },
       });
 
-      // Send notification to admin about property update
+      // Send notification to admin about property update (temporarily disabled)
+      /*
       try {
         const changes = Object.keys(data).filter(key => key !== 'mediaFiles');
         if (changes.length > 0) {
@@ -308,6 +335,7 @@ export class PropertyService {
         console.error('Failed to send property updated notification:', notificationError);
         // Don't fail the property update if notification fails
       }
+      */
 
       return updatedProperty;
     } catch (error) {
@@ -323,7 +351,11 @@ export class PropertyService {
     try {
       const property = await prisma.property.findUnique({
         where: { id },
-        include: { owner: true },
+        include: { 
+          owner: true,
+          bookings: true,
+          commissions: true
+        },
       });
 
       if (!property) {
@@ -339,15 +371,40 @@ export class PropertyService {
       }
 
       // Delete media files from S3
-      if (property.mediaUrls.length > 0) {
-        const keys = property.mediaUrls.map(url => S3Uploader.extractKeyFromUrl(url)).filter(Boolean);
-        if (keys.length > 0) {
-          await S3Uploader.deleteMultipleFiles(keys);
+      try {
+        const mediaUrlsArray = JSON.parse(property.mediaUrls || '[]');
+        if (mediaUrlsArray.length > 0) {
+          const keys = mediaUrlsArray.map((url: string) => S3Uploader.extractKeyFromUrl(url)).filter(Boolean);
+          if (keys.length > 0) {
+            await S3Uploader.deleteMultipleFiles(keys);
+          }
         }
+      } catch (e) {
+        console.error('Error parsing mediaUrls for deletion:', e);
       }
 
-      await prisma.property.delete({
-        where: { id },
+      // Delete related data in a transaction
+      await prisma.$transaction(async (tx) => {
+        // Delete related commissions
+        await tx.commission.deleteMany({
+          where: { propertyId: id }
+        });
+
+        // Delete related bookings (and their payments)
+        for (const booking of property.bookings) {
+          await tx.payment.deleteMany({
+            where: { bookingId: booking.id }
+          });
+        }
+        
+        await tx.booking.deleteMany({
+          where: { propertyId: id }
+        });
+
+        // Finally delete the property
+        await tx.property.delete({
+          where: { id }
+        });
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes('not found')) {
@@ -411,9 +468,12 @@ export class PropertyService {
       const locations = await prisma.property.findMany({
         select: { location: true },
         distinct: ['location'],
+        where: {
+          location: { not: null }
+        }
       });
 
-      return locations.map(l => l.location);
+      return locations.map(l => l.location).filter((loc): loc is string => loc !== null);
     } catch (error) {
       throw createError('Failed to fetch locations', 500);
     }

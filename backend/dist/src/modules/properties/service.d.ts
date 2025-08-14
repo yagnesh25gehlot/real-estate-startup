@@ -4,6 +4,9 @@ export interface CreatePropertyData {
     description: string;
     type: string;
     location: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
     price: number;
     mediaFiles?: Express.Multer.File[];
     dealerId?: string;
@@ -13,6 +16,9 @@ export interface UpdatePropertyData {
     description?: string;
     type?: string;
     location?: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
     price?: number;
     status?: string;
     mediaFiles?: Express.Multer.File[];
@@ -24,6 +30,7 @@ export interface PropertyFilters {
     maxPrice?: number;
     status?: string;
     dealerId?: string;
+    ownerId?: string;
 }
 export declare class PropertyService {
     static createProperty(data: CreatePropertyData, ownerId: string): Promise<Property>;
@@ -34,11 +41,18 @@ export declare class PropertyService {
                     name: string | null;
                     id: string;
                     email: string;
-                    role: import(".prisma/client").$Enums.Role;
+                    password: string | null;
+                    mobile: string | null;
+                    aadhaar: string | null;
+                    aadhaarImage: string | null;
+                    profilePic: string | null;
+                    role: string;
+                    status: string;
                     createdAt: Date;
                 };
             } & {
                 id: string;
+                status: string;
                 createdAt: Date;
                 userId: string;
                 parentId: string | null;
@@ -49,20 +63,90 @@ export declare class PropertyService {
                 name: string | null;
                 id: string;
                 email: string;
-                role: import(".prisma/client").$Enums.Role;
+                password: string | null;
+                mobile: string | null;
+                aadhaar: string | null;
+                aadhaarImage: string | null;
+                profilePic: string | null;
+                role: string;
+                status: string;
                 createdAt: Date;
             };
         } & {
             id: string;
-            createdAt: Date;
-            dealerId: string | null;
-            title: string;
-            description: string;
-            type: string;
-            location: string;
-            price: number;
             status: string;
-            mediaUrls: string[];
+            createdAt: Date;
+            type: string;
+            title: string;
+            dealerId: string | null;
+            description: string;
+            location: string | null;
+            address: string;
+            latitude: number | null;
+            longitude: number | null;
+            price: number;
+            mediaUrls: string;
+            ownerId: string;
+        })[];
+        pagination: {
+            page: number;
+            limit: number;
+            total: number;
+            pages: number;
+        };
+    }>;
+    static getAllPropertiesForAdmin(filters?: PropertyFilters, page?: number, limit?: number): Promise<{
+        properties: ({
+            dealer: ({
+                user: {
+                    name: string | null;
+                    id: string;
+                    email: string;
+                    password: string | null;
+                    mobile: string | null;
+                    aadhaar: string | null;
+                    aadhaarImage: string | null;
+                    profilePic: string | null;
+                    role: string;
+                    status: string;
+                    createdAt: Date;
+                };
+            } & {
+                id: string;
+                status: string;
+                createdAt: Date;
+                userId: string;
+                parentId: string | null;
+                commission: number;
+                referralCode: string;
+            }) | null;
+            owner: {
+                name: string | null;
+                id: string;
+                email: string;
+                password: string | null;
+                mobile: string | null;
+                aadhaar: string | null;
+                aadhaarImage: string | null;
+                profilePic: string | null;
+                role: string;
+                status: string;
+                createdAt: Date;
+            };
+        } & {
+            id: string;
+            status: string;
+            createdAt: Date;
+            type: string;
+            title: string;
+            dealerId: string | null;
+            description: string;
+            location: string | null;
+            address: string;
+            latitude: number | null;
+            longitude: number | null;
+            price: number;
+            mediaUrls: string;
             ownerId: string;
         })[];
         pagination: {

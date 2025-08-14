@@ -1,86 +1,35 @@
-import { Booking, Payment } from '@prisma/client';
-import Stripe from 'stripe';
 export interface CreateBookingData {
     propertyId: string;
-    startDate: string;
-    endDate: string;
-    amount: number;
+    userId: string;
+    dealerCode?: string;
+    startDate?: Date;
+    endDate?: Date;
 }
-export interface PaymentIntentData {
-    bookingId: string;
-    amount: number;
-    currency: string;
-}
-export interface CreatePaymentIntentForBookingData {
+export interface CreateManualBookingData {
     propertyId: string;
-    startDate: string;
-    endDate: string;
-    amount: number;
     userId: string;
+    dealerCode?: string;
+    paymentRef: string;
+    paymentProof?: string;
 }
-export interface ConfirmPaymentAndCreateBookingData {
-    paymentIntentId: string;
-    paymentMethodId: string;
-    bookingData: CreateBookingData;
-    userId: string;
+export interface BookingWithPayment {
+    booking: any;
+    paymentIntent: any;
 }
 export declare class BookingService {
-    static createBooking(data: CreateBookingData, userId: string): Promise<Booking>;
-    static createPaymentIntent(data: PaymentIntentData): Promise<Stripe.PaymentIntent>;
-    static confirmPayment(paymentIntentId: string): Promise<Payment>;
-    static getBookings(userId?: string, filters?: any): Promise<({
-        user: {
-            name: string | null;
-            id: string;
-            email: string;
-            role: import(".prisma/client").$Enums.Role;
-            createdAt: Date;
-        };
-        property: {
-            owner: {
-                name: string | null;
-                id: string;
-                email: string;
-                role: import(".prisma/client").$Enums.Role;
-                createdAt: Date;
-            };
-        } & {
-            id: string;
-            createdAt: Date;
-            dealerId: string | null;
-            title: string;
-            description: string;
-            type: string;
-            location: string;
-            price: number;
-            status: string;
-            mediaUrls: string[];
-            ownerId: string;
-        };
-        payment: {
-            id: string;
-            createdAt: Date;
-            bookingId: string;
-            amount: number;
-            stripeId: string;
-        } | null;
-    } & {
-        id: string;
-        createdAt: Date;
-        userId: string;
-        status: string;
-        propertyId: string;
-        startDate: Date;
-        endDate: Date;
-    })[]>;
-    static getBookingById(id: string): Promise<Booking | null>;
-    static cancelBooking(id: string, userId: string): Promise<void>;
-    static getAvailableTimeSlots(propertyId: string, startDate: string, endDate: string): Promise<{
-        startDate: Date;
-        endDate: Date;
-        duration: number;
-    }[]>;
-    static createPaymentIntentForBooking(data: CreatePaymentIntentForBookingData): Promise<any>;
-    static confirmPaymentAndCreateBooking(data: ConfirmPaymentAndCreateBookingData): Promise<Booking>;
+    static validateDealerCode(dealerCode: string): Promise<boolean>;
+    static isPropertyAvailable(propertyId: string, startDate: Date, endDate: Date): Promise<boolean>;
+    static createManualBooking(data: CreateManualBookingData): Promise<any>;
+    static createBookingWithPayment(data: CreateBookingData): Promise<BookingWithPayment>;
+    static confirmBooking(bookingId: string, paymentIntentId: string): Promise<any>;
+    static approveBooking(bookingId: string): Promise<any>;
+    static rejectBooking(bookingId: string): Promise<any>;
+    static unbookProperty(bookingId: string): Promise<any>;
+    static handleDealerCommission(booking: any): Promise<void>;
+    static getAllBookings(page?: number, limit?: number, status?: string, search?: string): Promise<any>;
+    static getUserBookings(userId: string): Promise<any[]>;
+    static cancelBooking(bookingId: string, userId: string): Promise<any>;
+    static updateExpiredBookings(): Promise<void>;
+    static getBookingStats(): Promise<any>;
 }
 //# sourceMappingURL=service.d.ts.map

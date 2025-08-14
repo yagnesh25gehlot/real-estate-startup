@@ -1,387 +1,427 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BookingService = void 0;
 const client_1 = require("@prisma/client");
-const stripe_1 = __importDefault(require("stripe"));
 const errorHandler_1 = require("../../utils/errorHandler");
+const paymentService_1 = require("../../utils/paymentService");
 const notifications_1 = require("../../mail/notifications");
 const prisma = new client_1.PrismaClient();
-let stripe = null;
-if (process.env.STRIPE_SECRET_KEY) {
-    stripe = new stripe_1.default(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: '2023-10-16',
-    });
-}
 class BookingService {
-    static async createBooking(data, userId) {
-        try {
-            const property = await prisma.property.findUnique({
-                where: { id: data.propertyId },
-            });
-            if (!property) {
-                throw (0, errorHandler_1.createError)('Property not found', 404);
-            }
-            if (property.status !== 'FREE') {
-                throw (0, errorHandler_1.createError)('Property is not available for booking', 400);
-            }
-            const overlappingBooking = await prisma.booking.findFirst({
-                where: {
-                    propertyId: data.propertyId,
-                    status: {
-                        in: ['PENDING', 'CONFIRMED'],
-                    },
-                    OR: [
-                        {
-                            startDate: {
-                                lte: new Date(data.endDate),
-                            },
-                            endDate: {
-                                gte: new Date(data.startDate),
-                            },
-                        },
-                    ],
-                },
-            });
-            if (overlappingBooking) {
-                throw (0, errorHandler_1.createError)('Property is already booked for the selected dates', 400);
-            }
-            const booking = await prisma.booking.create({
-                data: {
-                    propertyId: data.propertyId,
-                    userId,
-                    startDate: new Date(data.startDate),
-                    endDate: new Date(data.endDate),
-                },
-                include: {
-                    property: {
-                        include: {
-                            owner: true,
-                        },
-                    },
-                    user: true,
-                },
-            });
-            return booking;
+    static async validateDealerCode(dealerCode) {
+        if (!dealerCode)
+            return true;
+        const dealer = await prisma.dealer.findUnique({
+            where: { referralCode: dealerCode },
+        });
+        if (!dealer || dealer.status !== 'APPROVED') {
+            console.log(`⚠️ Invalid dealer code: ${dealerCode} - proceeding with booking anyway`);
+            return true;
         }
-        catch (error) {
-            if (error instanceof Error && error.message.includes('not found')) {
-                throw error;
-            }
-            throw (0, errorHandler_1.createError)('Failed to create booking', 500);
-        }
+        return true;
     }
-    static async createPaymentIntent(data) {
-        try {
-            if (!stripe) {
-                throw (0, errorHandler_1.createError)('Stripe not configured', 503);
-            }
-            const booking = await prisma.booking.findUnique({
-                where: { id: data.bookingId },
-                include: {
-                    property: true,
-                    user: true,
-                },
-            });
-            if (!booking) {
-                throw (0, errorHandler_1.createError)('Booking not found', 404);
-            }
-            if (booking.status !== 'PENDING') {
-                throw (0, errorHandler_1.createError)('Booking is not in pending status', 400);
-            }
-            const paymentIntent = await stripe.paymentIntents.create({
-                amount: Math.round(data.amount * 100),
-                currency: data.currency,
-                metadata: {
-                    bookingId: data.bookingId,
-                    propertyId: booking.propertyId,
-                    userId: booking.userId,
-                },
-            });
-            return paymentIntent;
-        }
-        catch (error) {
-            throw (0, errorHandler_1.createError)('Failed to create payment intent', 500);
-        }
+    static async isPropertyAvailable(propertyId, startDate, endDate) {
+        const conflictingBookings = await prisma.booking.findMany({
+            where: {
+                propertyId,
+                status: { in: ['CONFIRMED'] },
+                OR: [
+                    {
+                        startDate: { lte: endDate },
+                        endDate: { gte: startDate },
+                    },
+                ],
+            },
+        });
+        return conflictingBookings.length === 0;
     }
-    static async confirmPayment(paymentIntentId) {
+    static async createManualBooking(data) {
+        const { propertyId, userId, dealerCode, paymentRef, paymentProof } = data;
+        const property = await prisma.property.findUnique({ where: { id: propertyId } });
+        if (!property)
+            throw (0, errorHandler_1.createError)('Property not found', 404);
+        if (property.status !== 'FREE')
+            throw (0, errorHandler_1.createError)('Property is not available for booking', 400);
+        if (dealerCode) {
+            const ok = await this.validateDealerCode(dealerCode);
+            if (!ok)
+                throw (0, errorHandler_1.createError)('Invalid dealer code', 400);
+        }
+        const defaultStartDate = new Date();
+        const defaultEndDate = new Date(defaultStartDate.getTime() + (3 * 24 * 60 * 60 * 1000));
+        const available = await this.isPropertyAvailable(propertyId, defaultStartDate, defaultEndDate);
+        if (!available)
+            throw (0, errorHandler_1.createError)('Property is not available for the selected dates', 400);
+        if (!paymentRef || paymentRef.trim().length < 4) {
+            throw (0, errorHandler_1.createError)('Payment reference is required', 400);
+        }
+        const bookingCharges = 300;
+        const totalAmount = bookingCharges;
+        const booking = await prisma.booking.create({
+            data: {
+                propertyId,
+                userId,
+                dealerCode: dealerCode || null,
+                startDate: defaultStartDate,
+                endDate: defaultEndDate,
+                bookingCharges,
+                totalAmount,
+                status: 'PENDING',
+                paymentMethod: 'UPI',
+                paymentRef,
+                paymentProof: paymentProof || null,
+            },
+            include: { property: true, user: true },
+        });
         try {
-            if (!stripe) {
-                throw (0, errorHandler_1.createError)('Stripe not configured', 503);
+            const adminEmail = process.env.ADMIN_EMAIL || 'admin@propertyplatform.com';
+            await (0, notifications_1.sendManualBookingSubmittedEmail)(adminEmail, {
+                user: booking.user.email,
+                property: booking.property.title,
+                paymentRef,
+                proofUrl: paymentProof,
+                start: defaultStartDate.toDateString(),
+                end: defaultEndDate.toDateString(),
+            });
+            console.log('🎯 NEW BOOKING CREATED - Check admin dashboard!');
+            console.log(`📊 Booking ID: ${booking.id}`);
+            console.log(`👤 User: ${booking.user.email}`);
+            console.log(`🏠 Property: ${booking.property.title}`);
+            console.log(`💰 Payment Ref: ${paymentRef}`);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        }
+        catch (e) {
+            console.warn('Admin notification failed (non-blocking):', e);
+        }
+        return booking;
+    }
+    static async createBookingWithPayment(data) {
+        const { propertyId, userId, dealerCode, startDate, endDate } = data;
+        const property = await prisma.property.findUnique({
+            where: { id: propertyId },
+            include: { owner: true },
+        });
+        if (!property) {
+            throw (0, errorHandler_1.createError)('Property not found', 404);
+        }
+        if (property.status !== 'FREE') {
+            throw (0, errorHandler_1.createError)('Property is not available for booking', 400);
+        }
+        if (dealerCode) {
+            const isValidDealer = await this.validateDealerCode(dealerCode);
+            if (!isValidDealer) {
+                throw (0, errorHandler_1.createError)('Invalid dealer code', 400);
             }
-            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-            if (paymentIntent.status !== 'succeeded') {
-                throw (0, errorHandler_1.createError)('Payment not completed', 400);
-            }
-            const bookingId = paymentIntent.metadata.bookingId;
-            await prisma.booking.update({
+        }
+        const defaultStartDate = startDate || new Date();
+        const defaultEndDate = endDate || new Date(defaultStartDate.getTime() + (3 * 24 * 60 * 60 * 1000));
+        const isAvailable = await this.isPropertyAvailable(propertyId, defaultStartDate, defaultEndDate);
+        if (!isAvailable) {
+            throw (0, errorHandler_1.createError)('Property is not available for the selected dates', 400);
+        }
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+        if (!user) {
+            throw (0, errorHandler_1.createError)('User not found', 404);
+        }
+        const bookingCharges = 300;
+        const totalAmount = bookingCharges;
+        const booking = await prisma.booking.create({
+            data: {
+                propertyId,
+                userId,
+                dealerCode: dealerCode || null,
+                startDate: defaultStartDate,
+                endDate: defaultEndDate,
+                bookingCharges,
+                totalAmount,
+                status: 'PENDING',
+            },
+            include: {
+                property: {
+                    include: { owner: true },
+                },
+                user: true,
+            },
+        });
+        const paymentIntent = await paymentService_1.PaymentService.createPaymentIntent({
+            amount: totalAmount,
+            currency: 'inr',
+            bookingId: booking.id,
+            customerEmail: user.email,
+            customerName: user.name || user.email,
+        });
+        return {
+            booking,
+            paymentIntent,
+        };
+    }
+    static async confirmBooking(bookingId, paymentIntentId) {
+        const booking = await prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { property: true },
+        });
+        if (!booking) {
+            throw (0, errorHandler_1.createError)('Booking not found', 404);
+        }
+        if (booking.status !== 'PENDING') {
+            throw (0, errorHandler_1.createError)('Booking is not in pending status', 400);
+        }
+        const paymentConfirmed = await paymentService_1.PaymentService.confirmPayment(paymentIntentId);
+        if (!paymentConfirmed) {
+            throw (0, errorHandler_1.createError)('Payment not confirmed', 400);
+        }
+        const [updatedBooking] = await prisma.$transaction([
+            prisma.booking.update({
                 where: { id: bookingId },
                 data: { status: 'CONFIRMED' },
-            });
-            const booking = await prisma.booking.findUnique({
-                where: { id: bookingId },
-                include: { property: true },
-            });
-            if (booking) {
-                await prisma.property.update({
-                    where: { id: booking.propertyId },
-                    data: { status: 'BOOKED' },
-                });
-            }
-            const payment = await prisma.payment.create({
+                include: { property: true, user: true },
+            }),
+            prisma.payment.create({
                 data: {
-                    amount: paymentIntent.amount / 100,
+                    amount: booking.totalAmount,
                     bookingId,
                     stripeId: paymentIntentId,
                 },
-                include: {
-                    booking: {
-                        include: {
-                            property: true,
-                            user: true,
-                        },
-                    },
-                },
-            });
-            if (booking) {
-                await (0, notifications_1.sendBookingConfirmationEmail)({
-                    bookingId,
-                    userEmail: booking.user.email,
-                    userName: booking.user.name || 'User',
-                    propertyTitle: booking.property.title,
-                    startDate: booking.startDate.toLocaleDateString(),
-                    endDate: booking.endDate.toLocaleDateString(),
-                    amount: payment.amount,
-                });
-            }
-            return payment;
-        }
-        catch (error) {
-            throw (0, errorHandler_1.createError)('Failed to confirm payment', 500);
-        }
+            }),
+            prisma.property.update({
+                where: { id: booking.propertyId },
+                data: { status: 'BOOKED' },
+            }),
+        ]);
+        return updatedBooking;
     }
-    static async getBookings(userId, filters = {}) {
-        try {
-            const where = {};
-            if (userId) {
-                where.userId = userId;
-            }
-            if (filters.status) {
-                where.status = filters.status;
-            }
-            if (filters.propertyId) {
-                where.propertyId = filters.propertyId;
-            }
-            const bookings = await prisma.booking.findMany({
-                where,
-                include: {
-                    property: {
-                        include: {
-                            owner: true,
-                        },
+    static async approveBooking(bookingId) {
+        const booking = await prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { property: true, user: true }
+        });
+        if (!booking)
+            throw (0, errorHandler_1.createError)('Booking not found', 404);
+        if (booking.status !== 'PENDING')
+            throw (0, errorHandler_1.createError)('Only pending bookings can be approved', 400);
+        const conflictingBookings = await prisma.booking.findMany({
+            where: {
+                propertyId: booking.propertyId,
+                status: 'CONFIRMED',
+                OR: [
+                    {
+                        startDate: { lte: booking.endDate },
+                        endDate: { gte: booking.startDate },
                     },
-                    user: true,
-                    payment: true,
-                },
-                orderBy: {
-                    createdAt: 'desc',
-                },
-            });
-            return bookings;
+                ],
+            },
+        });
+        if (conflictingBookings.length > 0) {
+            throw (0, errorHandler_1.createError)('Another booking is already confirmed for this property in the same time slot', 400);
         }
-        catch (error) {
-            throw (0, errorHandler_1.createError)('Failed to fetch bookings', 500);
-        }
-    }
-    static async getBookingById(id) {
-        try {
-            return await prisma.booking.findUnique({
-                where: { id },
-                include: {
-                    property: {
-                        include: {
-                            owner: true,
-                        },
+        await prisma.booking.updateMany({
+            where: {
+                propertyId: booking.propertyId,
+                status: 'PENDING',
+                id: { not: bookingId },
+                OR: [
+                    {
+                        startDate: { lte: booking.endDate },
+                        endDate: { gte: booking.startDate },
                     },
-                    user: true,
-                    payment: true,
-                },
-            });
-        }
-        catch (error) {
-            throw (0, errorHandler_1.createError)('Failed to fetch booking', 500);
-        }
+                ],
+            },
+            data: { status: 'CANCELLED' },
+        });
+        const [updatedBooking] = await prisma.$transaction([
+            prisma.booking.update({
+                where: { id: bookingId },
+                data: { status: 'CONFIRMED' },
+                include: { property: true, user: true }
+            }),
+            prisma.property.update({
+                where: { id: booking.propertyId },
+                data: { status: 'BOOKED' }
+            }),
+        ]);
+        return updatedBooking;
     }
-    static async cancelBooking(id, userId) {
-        try {
-            const booking = await prisma.booking.findUnique({
-                where: { id },
-                include: { property: true },
-            });
-            if (!booking) {
-                throw (0, errorHandler_1.createError)('Booking not found', 404);
-            }
-            if (booking.userId !== userId) {
-                const user = await prisma.user.findUnique({ where: { id: userId } });
-                if (user?.role !== 'ADMIN') {
-                    throw (0, errorHandler_1.createError)('Unauthorized to cancel this booking', 403);
-                }
-            }
-            await prisma.booking.update({
-                where: { id },
+    static async rejectBooking(bookingId) {
+        const booking = await prisma.booking.findUnique({ where: { id: bookingId }, include: { property: true } });
+        if (!booking)
+            throw (0, errorHandler_1.createError)('Booking not found', 404);
+        if (booking.status !== 'PENDING')
+            throw (0, errorHandler_1.createError)('Only pending bookings can be rejected', 400);
+        const updatedBooking = await prisma.booking.update({ where: { id: bookingId }, data: { status: 'CANCELLED' } });
+        await prisma.property.update({ where: { id: booking.propertyId }, data: { status: 'FREE' } });
+        return updatedBooking;
+    }
+    static async unbookProperty(bookingId) {
+        const booking = await prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { property: true, user: true }
+        });
+        if (!booking)
+            throw (0, errorHandler_1.createError)('Booking not found', 404);
+        if (booking.status !== 'CONFIRMED')
+            throw (0, errorHandler_1.createError)('Only confirmed bookings can be unbooked', 400);
+        const [updatedBooking] = await prisma.$transaction([
+            prisma.booking.update({
+                where: { id: bookingId },
                 data: { status: 'CANCELLED' },
-            });
-            if (booking.property.status === 'BOOKED') {
-                await prisma.property.update({
+                include: { property: true, user: true }
+            }),
+            prisma.property.update({
+                where: { id: booking.propertyId },
+                data: { status: 'FREE' }
+            }),
+        ]);
+        return updatedBooking;
+    }
+    static async handleDealerCommission(booking) {
+        const dealer = await prisma.dealer.findUnique({
+            where: { referralCode: booking.dealerCode },
+        });
+        if (!dealer)
+            return;
+        const commissionAmount = booking.property.price * 0.1;
+        await prisma.commission.create({
+            data: {
+                dealerId: dealer.id,
+                propertyId: booking.propertyId,
+                amount: commissionAmount,
+                level: 1,
+            },
+        });
+        await prisma.dealer.update({
+            where: { id: dealer.id },
+            data: {
+                commission: {
+                    increment: commissionAmount,
+                },
+            },
+        });
+    }
+    static async getAllBookings(page = 1, limit = 10, status, search) {
+        const skip = (page - 1) * limit;
+        const where = {};
+        if (status) {
+            where.status = status;
+        }
+        if (search) {
+            where.OR = [
+                { user: { name: { contains: search, mode: 'insensitive' } } },
+                { user: { email: { contains: search, mode: 'insensitive' } } },
+                { property: { title: { contains: search, mode: 'insensitive' } } },
+                { paymentRef: { contains: search, mode: 'insensitive' } },
+            ];
+        }
+        const [bookings, total] = await Promise.all([
+            prisma.booking.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    property: {
+                        include: { owner: true },
+                    },
+                    user: true,
+                    payment: true,
+                },
+            }),
+            prisma.booking.count({ where }),
+        ]);
+        return {
+            bookings,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+    static async getUserBookings(userId) {
+        return prisma.booking.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                property: true,
+                payment: true,
+            },
+        });
+    }
+    static async cancelBooking(bookingId, userId) {
+        const booking = await prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { property: true, payment: true },
+        });
+        if (!booking) {
+            throw (0, errorHandler_1.createError)('Booking not found', 404);
+        }
+        if (booking.userId !== userId) {
+            throw (0, errorHandler_1.createError)('Unauthorized to cancel this booking', 403);
+        }
+        if (booking.status !== 'CONFIRMED') {
+            throw (0, errorHandler_1.createError)('Booking cannot be cancelled', 400);
+        }
+        const now = new Date();
+        const bookingStart = new Date(booking.startDate);
+        const hoursUntilBooking = (bookingStart.getTime() - now.getTime()) / (1000 * 60 * 60);
+        if (hoursUntilBooking < 24) {
+            throw (0, errorHandler_1.createError)('Booking cannot be cancelled within 24 hours of start date', 400);
+        }
+        if (booking.payment) {
+            await paymentService_1.PaymentService.refundPayment(booking.payment.stripeId);
+        }
+        const [updatedBooking] = await prisma.$transaction([
+            prisma.booking.update({
+                where: { id: bookingId },
+                data: { status: 'CANCELLED' },
+                include: { property: true, user: true },
+            }),
+            prisma.property.update({
+                where: { id: booking.propertyId },
+                data: { status: 'FREE' },
+            }),
+        ]);
+        return updatedBooking;
+    }
+    static async updateExpiredBookings() {
+        const now = new Date();
+        const expiredBookings = await prisma.booking.findMany({
+            where: {
+                status: 'CONFIRMED',
+                endDate: { lt: now },
+            },
+            include: { property: true },
+        });
+        for (const booking of expiredBookings) {
+            await prisma.$transaction([
+                prisma.booking.update({
+                    where: { id: booking.id },
+                    data: { status: 'EXPIRED' },
+                }),
+                prisma.property.update({
                     where: { id: booking.propertyId },
                     data: { status: 'FREE' },
-                });
-            }
-        }
-        catch (error) {
-            if (error instanceof Error && error.message.includes('not found')) {
-                throw error;
-            }
-            throw (0, errorHandler_1.createError)('Failed to cancel booking', 500);
+                }),
+            ]);
         }
     }
-    static async getAvailableTimeSlots(propertyId, startDate, endDate) {
-        try {
-            const property = await prisma.property.findUnique({
-                where: { id: propertyId },
-            });
-            if (!property) {
-                throw (0, errorHandler_1.createError)('Property not found', 404);
-            }
-            const existingBookings = await prisma.booking.findMany({
-                where: {
-                    propertyId,
-                    status: {
-                        in: ['PENDING', 'CONFIRMED'],
-                    },
-                    OR: [
-                        {
-                            startDate: {
-                                lte: new Date(endDate),
-                            },
-                            endDate: {
-                                gte: new Date(startDate),
-                            },
-                        },
-                    ],
-                },
-            });
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            const availableSlots = [];
-            const bookingDuration = parseInt(process.env.DEFAULT_BOOKING_DURATION_DAYS || '3');
-            const durationMs = bookingDuration * 24 * 60 * 60 * 1000;
-            for (let current = start; current <= end; current = new Date(current.getTime() + durationMs)) {
-                const slotEnd = new Date(current.getTime() + durationMs);
-                const hasConflict = existingBookings.some(booking => {
-                    return ((current >= booking.startDate && current < booking.endDate) ||
-                        (slotEnd > booking.startDate && slotEnd <= booking.endDate) ||
-                        (current <= booking.startDate && slotEnd >= booking.endDate));
-                });
-                if (!hasConflict && slotEnd <= end) {
-                    availableSlots.push({
-                        startDate: current,
-                        endDate: slotEnd,
-                        duration: bookingDuration,
-                    });
-                }
-            }
-            return availableSlots;
-        }
-        catch (error) {
-            throw (0, errorHandler_1.createError)('Failed to get available time slots', 500);
-        }
-    }
-    static async createPaymentIntentForBooking(data) {
-        try {
-            const property = await prisma.property.findUnique({
-                where: { id: data.propertyId },
-            });
-            if (!property) {
-                throw (0, errorHandler_1.createError)('Property not found', 404);
-            }
-            if (property.status !== 'FREE') {
-                throw (0, errorHandler_1.createError)('Property is not available for booking', 400);
-            }
-            const overlappingBooking = await prisma.booking.findFirst({
-                where: {
-                    propertyId: data.propertyId,
-                    status: {
-                        in: ['PENDING', 'CONFIRMED'],
-                    },
-                    OR: [
-                        {
-                            startDate: {
-                                lte: new Date(data.endDate),
-                            },
-                            endDate: {
-                                gte: new Date(data.startDate),
-                            },
-                        },
-                    ],
-                },
-            });
-            if (overlappingBooking) {
-                throw (0, errorHandler_1.createError)('Property is already booked for the selected dates', 400);
-            }
-            const mockPaymentIntent = {
-                id: `pi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                client_secret: `pi_${Date.now()}_secret_${Math.random().toString(36).substr(2, 9)}`,
-                amount: data.amount * 100,
-                currency: 'inr',
-                status: 'requires_payment_method',
-                created: Math.floor(Date.now() / 1000),
-            };
-            return mockPaymentIntent;
-        }
-        catch (error) {
-            if (error instanceof Error && error.message.includes('not found')) {
-                throw error;
-            }
-            throw (0, errorHandler_1.createError)('Failed to create payment intent', 500);
-        }
-    }
-    static async confirmPaymentAndCreateBooking(data) {
-        try {
-            if (!data.paymentIntentId) {
-                throw (0, errorHandler_1.createError)('Payment intent ID is required', 400);
-            }
-            const booking = await this.createBooking(data.bookingData, data.userId);
-            const payment = await prisma.payment.create({
-                data: {
-                    bookingId: booking.id,
-                    amount: data.bookingData.amount,
-                    currency: 'INR',
-                    status: 'COMPLETED',
-                    paymentMethod: 'CARD',
-                    transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                },
-            });
-            await prisma.property.update({
-                where: { id: data.bookingData.propertyId },
-                data: { status: 'BOOKED' },
-            });
-            try {
-                await (0, notifications_1.sendBookingConfirmationEmail)(booking);
-            }
-            catch (emailError) {
-                console.error('Failed to send booking confirmation email:', emailError);
-            }
-            return booking;
-        }
-        catch (error) {
-            if (error instanceof Error && error.message.includes('not found')) {
-                throw error;
-            }
-            throw (0, errorHandler_1.createError)('Failed to confirm payment and create booking', 500);
-        }
+    static async getBookingStats() {
+        const [totalBookings, confirmedBookings, pendingBookings, cancelledBookings, totalRevenue,] = await Promise.all([
+            prisma.booking.count(),
+            prisma.booking.count({ where: { status: 'CONFIRMED' } }),
+            prisma.booking.count({ where: { status: 'PENDING' } }),
+            prisma.booking.count({ where: { status: 'CANCELLED' } }),
+            prisma.payment.aggregate({
+                _sum: { amount: true },
+                where: { booking: { status: 'CONFIRMED' } },
+            }),
+        ]);
+        return {
+            totalBookings,
+            confirmedBookings,
+            pendingBookings,
+            cancelledBookings,
+            totalRevenue: totalRevenue._sum.amount || 0,
+        };
     }
 }
 exports.BookingService = BookingService;

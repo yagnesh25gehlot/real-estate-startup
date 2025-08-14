@@ -25,7 +25,29 @@ const upload = (0, multer_1.default)({
 });
 router.get('/', middleware_1.optionalAuth, async (req, res, next) => {
     try {
-        const { type, location, minPrice, maxPrice, status, dealerId, page = 1, limit = 10, } = req.query;
+        const { type, location, minPrice, maxPrice, status, dealerId, ownerId, page = 1, limit = 10, } = req.query;
+        const filters = {
+            type: type,
+            location: location,
+            minPrice: minPrice ? parseFloat(minPrice) : undefined,
+            maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+            status: status,
+            dealerId: dealerId,
+            ownerId: ownerId,
+        };
+        const result = await service_1.PropertyService.getProperties(filters, parseInt(page), parseInt(limit));
+        res.json({
+            success: true,
+            data: result,
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+router.get('/admin/all', (0, middleware_1.authMiddleware)(['ADMIN']), async (req, res, next) => {
+    try {
+        const { type, location, minPrice, maxPrice, status, dealerId, page = 1, limit = 100, } = req.query;
         const filters = {
             type: type,
             location: location,
@@ -34,7 +56,7 @@ router.get('/', middleware_1.optionalAuth, async (req, res, next) => {
             status: status,
             dealerId: dealerId,
         };
-        const result = await service_1.PropertyService.getProperties(filters, parseInt(page), parseInt(limit));
+        const result = await service_1.PropertyService.getAllPropertiesForAdmin(filters, parseInt(page), parseInt(limit));
         res.json({
             success: true,
             data: result,
@@ -69,7 +91,28 @@ router.post('/', [
     (0, express_validator_1.body)('title').trim().isLength({ min: 3, max: 100 }),
     (0, express_validator_1.body)('description').trim().isLength({ min: 10, max: 1000 }),
     (0, express_validator_1.body)('type').trim().notEmpty(),
-    (0, express_validator_1.body)('location').trim().notEmpty(),
+    (0, express_validator_1.body)('location').optional().trim().isLength({ max: 100 }),
+    (0, express_validator_1.body)('address').trim().notEmpty().isLength({ min: 5, max: 500 }),
+    (0, express_validator_1.body)('latitude').optional().custom((value) => {
+        if (value === '' || value === null || value === undefined) {
+            return true;
+        }
+        const num = parseFloat(value);
+        if (isNaN(num) || num < -90 || num > 90) {
+            throw new Error('Latitude must be a valid number between -90 and 90');
+        }
+        return true;
+    }),
+    (0, express_validator_1.body)('longitude').optional().custom((value) => {
+        if (value === '' || value === null || value === undefined) {
+            return true;
+        }
+        const num = parseFloat(value);
+        if (isNaN(num) || num < -180 || num > 180) {
+            throw new Error('Longitude must be a valid number between -180 and 180');
+        }
+        return true;
+    }),
     (0, express_validator_1.body)('price').isFloat({ min: 0 }),
     (0, express_validator_1.body)('dealerId').optional().isUUID(),
 ], async (req, res, next) => {
@@ -82,13 +125,16 @@ router.post('/', [
                 details: errors.array(),
             });
         }
-        const { title, description, type, location, price, dealerId } = req.body;
+        const { title, description, type, location, address, latitude, longitude, price, dealerId } = req.body;
         const mediaFiles = req.files;
         const property = await service_1.PropertyService.createProperty({
             title,
             description,
             type,
             location,
+            address,
+            latitude: latitude ? parseFloat(latitude) : undefined,
+            longitude: longitude ? parseFloat(longitude) : undefined,
             price: parseFloat(price),
             mediaFiles,
             dealerId,
@@ -109,6 +155,27 @@ router.put('/:id', [
     (0, express_validator_1.body)('description').optional().trim().isLength({ min: 10, max: 1000 }),
     (0, express_validator_1.body)('type').optional().trim().notEmpty(),
     (0, express_validator_1.body)('location').optional().trim().notEmpty(),
+    (0, express_validator_1.body)('address').optional().trim().isLength({ max: 500 }),
+    (0, express_validator_1.body)('latitude').optional().custom((value) => {
+        if (value === '' || value === null || value === undefined) {
+            return true;
+        }
+        const num = parseFloat(value);
+        if (isNaN(num) || num < -90 || num > 90) {
+            throw new Error('Latitude must be a valid number between -90 and 90');
+        }
+        return true;
+    }),
+    (0, express_validator_1.body)('longitude').optional().custom((value) => {
+        if (value === '' || value === null || value === undefined) {
+            return true;
+        }
+        const num = parseFloat(value);
+        if (isNaN(num) || num < -180 || num > 180) {
+            throw new Error('Longitude must be a valid number between -180 and 180');
+        }
+        return true;
+    }),
     (0, express_validator_1.body)('price').optional().isFloat({ min: 0 }),
     (0, express_validator_1.body)('status').optional().isIn(['FREE', 'BOOKED', 'SOLD']),
 ], async (req, res, next) => {
@@ -122,13 +189,16 @@ router.put('/:id', [
             });
         }
         const { id } = req.params;
-        const { title, description, type, location, price, status } = req.body;
+        const { title, description, type, location, address, latitude, longitude, price, status } = req.body;
         const mediaFiles = req.files;
         const property = await service_1.PropertyService.updateProperty(id, {
             title,
             description,
             type,
             location,
+            address,
+            latitude: latitude ? parseFloat(latitude) : undefined,
+            longitude: longitude ? parseFloat(longitude) : undefined,
             price: price ? parseFloat(price) : undefined,
             status,
             mediaFiles,

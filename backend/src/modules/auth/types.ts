@@ -27,6 +27,7 @@ export interface LoginResponse {
     name: string | null;
     mobile?: string | null;
     aadhaar?: string | null;
+    aadhaarImage?: string | null;
     profilePic?: string | null;
     role: Role;
     createdAt: Date;
@@ -36,7 +37,6 @@ export interface LoginResponse {
       status: string;
     } | null;
   };
-  token: string;
 }
 
 export interface LoginRequest {

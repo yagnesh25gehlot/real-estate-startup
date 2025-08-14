@@ -1,55 +1,61 @@
-import { useState, useEffect } from 'react'
-import { propertiesApi } from '../services/api'
+import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 const DebugInfo = () => {
-  const [apiStatus, setApiStatus] = useState<string>('Testing...')
-  const [properties, setProperties] = useState<any[]>([])
-  const [error, setError] = useState<string>('')
+  const [debugInfo, setDebugInfo] = useState<any>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const testAPI = async () => {
+    const checkAPI = async () => {
       try {
-        console.log('DebugInfo: Making API call...')
-        const response = await propertiesApi.getAll()
-        console.log('DebugInfo: API Response:', response)
-        setProperties(response.data.properties || [])
-        setApiStatus(`✅ API Connected - Properties loaded (${response.data.properties?.length || 0})`)
-      } catch (err: any) {
-        console.error('DebugInfo: API Error:', err)
-        setError(err.message)
-        setApiStatus('❌ API Error')
-      }
-    }
+        // Test API health endpoint
+        const healthResponse = await api.get('/health');
+        console.log('Health check response:', healthResponse.data);
+        
+        // Test login endpoint (without credentials)
+        try {
+          await api.post('/auth/login', { email: 'test@test.com', password: 'test' });
+        } catch (error: any) {
+          console.log('Login endpoint test (expected to fail):', error.response?.status);
+        }
 
-    testAPI()
-  }, [])
+        setDebugInfo({
+          apiBaseUrl: api.defaults.baseURL,
+          healthCheck: healthResponse.data,
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          localStorage: {
+            user: !!localStorage.getItem('user'),
+            user: !!localStorage.getItem('user'),
+          }
+        });
+      } catch (error: any) {
+        console.error('API check failed:', error);
+        setDebugInfo({
+          error: error.message,
+          apiBaseUrl: api.defaults.baseURL,
+          timestamp: new Date().toISOString(),
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAPI();
+  }, []);
+
+  if (loading) {
+    return <div className="p-4 bg-yellow-100 border border-yellow-400 rounded">Loading debug info...</div>;
+  }
 
   return (
-    <div className="card mb-4">
-      <h3 className="text-lg font-semibold mb-4">Debug Information</h3>
-      
-      <div className="space-y-2">
-        <p><strong>API Status:</strong> {apiStatus}</p>
-        <p><strong>Properties Count:</strong> {properties.length}</p>
-        <p><strong>API URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:3001'}</p>
-        
-        {error && (
-          <p className="text-red-600"><strong>Error:</strong> {error}</p>
-        )}
-        
-        {properties.length > 0 && (
-          <div>
-            <p><strong>Sample Properties:</strong></p>
-            <ul className="list-disc list-inside text-sm">
-              {properties.slice(0, 3).map((prop: any) => (
-                <li key={prop.id}>{prop.title} - ${prop.price}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+    <div className="p-4 bg-gray-100 border border-gray-400 rounded text-sm">
+      <h3 className="font-bold mb-2">Debug Information</h3>
+      <pre className="whitespace-pre-wrap overflow-auto max-h-96">
+        {JSON.stringify(debugInfo, null, 2)}
+      </pre>
     </div>
-  )
-}
+  );
+};
 
-export default DebugInfo 
+export default DebugInfo; 

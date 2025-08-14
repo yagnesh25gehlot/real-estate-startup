@@ -23,125 +23,127 @@ export interface UploadResult {
   key: string;
 }
 
+// File validation constants
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE_AADHAAR = 5 * 1024 * 1024; // 5MB for Aadhaar documents
+
 export class S3Uploader {
-  static async uploadFile(
-    file: Express.Multer.File,
-    folder: string = 'properties'
-  ): Promise<UploadResult> {
-    try {
-      if (!s3 || !BUCKET_NAME) {
-        console.log('⚠️ S3 not configured, storing file locally');
-        return await this.uploadFileLocally(file, folder);
-      }
+  // Validate file type and size
+  static validateFile(file: Express.Multer.File, allowedTypes: string[] = ALLOWED_IMAGE_TYPES, maxSize: number = MAX_FILE_SIZE): void {
+    if (!file) {
+      throw createError('No file provided', 400);
+    }
 
-      const key = `${folder}/${Date.now()}-${file.originalname}`;
-      
-      const params = {
-        Bucket: BUCKET_NAME,
-        Key: key,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        ACL: 'public-read',
-      };
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw createError(`Invalid file type. Allowed types: ${allowedTypes.join(', ')}`, 400);
+    }
 
-      const result = await s3.upload(params).promise();
-      
-      return {
-        url: result.Location,
-        key: result.Key,
-      };
-    } catch (error) {
-      console.error('S3 upload error:', error);
-      throw createError('Failed to upload file to S3', 500);
+    if (file.size > maxSize) {
+      throw createError(`File too large. Maximum size: ${maxSize / (1024 * 1024)}MB`, 400);
+    }
+
+    // Additional security checks
+    if (file.originalname.includes('..') || file.originalname.includes('/') || file.originalname.includes('\\')) {
+      throw createError('Invalid filename', 400);
     }
   }
 
-  static async uploadFileLocally(
-    file: Express.Multer.File,
-    folder: string = 'properties'
-  ): Promise<UploadResult> {
+  // Validate image specifically
+  static validateImage(file: Express.Multer.File): void {
+    this.validateFile(file, ALLOWED_IMAGE_TYPES, MAX_FILE_SIZE);
+  }
+
+  // Validate document (Aadhaar, etc.)
+  static validateDocument(file: Express.Multer.File): void {
+    this.validateFile(file, ALLOWED_DOCUMENT_TYPES, MAX_FILE_SIZE_AADHAAR);
+  }
+
+  static async uploadFile(file: Express.Multer.File, folder: string = 'general'): Promise<UploadResult> {
     try {
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = path.join(process.cwd(), 'uploads', folder);
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
+      // Validate file before upload
+      this.validateImage(file);
+
+      const key = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
+
+      if (s3 && BUCKET_NAME) {
+        try {
+          // Upload to S3
+          const result = await s3.upload({
+            Bucket: BUCKET_NAME,
+            Key: key,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+            ACL: 'public-read',
+            Metadata: {
+              originalName: file.originalname,
+              uploadedAt: new Date().toISOString(),
+            }
+          }).promise();
+
+          return {
+            url: result.Location,
+            key: result.Key,
+          };
+        } catch (s3Error) {
+          // Fallback to local storage if S3 fails
+          return await this.uploadFileLocally(file, folder);
+        }
+      } else {
+        // Fallback to local storage
+        return await this.uploadFileLocally(file, folder);
+      }
+    } catch (error) {
+      throw createError('File upload failed', 500);
+    }
+  }
+
+  static async uploadFileLocally(file: Express.Multer.File, folder: string = 'general'): Promise<UploadResult> {
+    try {
+      const uploadDir = path.join(process.cwd(), 'uploads', folder);
+      
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      // Sanitize filename to avoid spaces and special characters
-      const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/_+/g, '_');
-      const fileName = `${Date.now()}-${sanitizedName}`;
-      const filePath = path.join(uploadsDir, fileName);
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
+      const filePath = path.join(uploadDir, fileName);
       const relativePath = path.join(folder, fileName);
 
-      // Write file to disk
+      // Write file
       fs.writeFileSync(filePath, file.buffer);
 
-      // Auto-resize image if it's an image file
-      if (file.mimetype.startsWith('image/')) {
-        try {
-          const { execSync } = require('child_process');
-          const smallFileName = fileName.replace(/\.[^/.]+$/, '-small$&');
-          const smallFilePath = path.join(uploadsDir, smallFileName);
-          
-          // Use sips to resize image to max 800px width/height
-          execSync(`sips -Z 800 "${filePath}" --out "${smallFilePath}"`, { stdio: 'ignore' });
-          
-          // Use the smaller image URL
-          const smallRelativePath = path.join(folder, smallFileName);
-          const url = `/uploads/${smallRelativePath}`;
-          
-          return {
-            url,
-            key: smallRelativePath,
-          };
-        } catch (resizeError) {
-          console.log('⚠️ Image resize failed, using original:', resizeError.message);
-        }
-      }
-
-      // Return local URL (original if resize failed)
-      const url = `/uploads/${relativePath}`;
-      
       return {
-        url,
+        url: `/uploads/${relativePath}`,
         key: relativePath,
       };
     } catch (error) {
-      console.error('Local upload error:', error);
-      throw createError('Failed to upload file locally', 500);
+      throw createError('Local file upload failed', 500);
     }
   }
 
-  static async uploadMultipleFiles(
-    files: Express.Multer.File[],
-    folder: string = 'properties'
-  ): Promise<UploadResult[]> {
-    try {
-      const uploadPromises = files.map(file => this.uploadFile(file, folder));
-      return await Promise.all(uploadPromises);
-    } catch (error) {
-      console.error('Multiple S3 upload error:', error);
-      throw createError('Failed to upload files to S3', 500);
-    }
+  static async uploadMultipleFiles(files: Express.Multer.File[], folder: string = 'general'): Promise<UploadResult[]> {
+    const uploadPromises = files.map(file => this.uploadFile(file, folder));
+    return Promise.all(uploadPromises);
   }
 
   static async deleteFile(key: string): Promise<void> {
     try {
-      if (!s3 || !BUCKET_NAME) {
-        console.log('⚠️ S3 not configured, deleting local file');
-        return await this.deleteFileLocally(key);
+      if (s3 && BUCKET_NAME) {
+        await s3.deleteObject({
+          Bucket: BUCKET_NAME,
+          Key: key,
+        }).promise();
+      } else {
+        await this.deleteFileLocally(key);
       }
-
-      const params = {
-        Bucket: BUCKET_NAME,
-        Key: key,
-      };
-
-      await s3.deleteObject(params).promise();
-      console.log(`✅ File deleted from S3: ${key}`);
     } catch (error) {
-      console.error('S3 delete error:', error);
-      throw createError('Failed to delete file from S3', 500);
+      // Log error but don't throw to avoid breaking the application
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to delete file:', key, error);
+      }
     }
   }
 
@@ -150,43 +152,37 @@ export class S3Uploader {
       const filePath = path.join(process.cwd(), 'uploads', key);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
-        console.log(`✅ Local file deleted: ${key}`);
       }
     } catch (error) {
-      console.error('Local delete error:', error);
-      throw createError('Failed to delete local file', 500);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to delete local file:', key, error);
+      }
     }
   }
 
   static async deleteMultipleFiles(keys: string[]): Promise<void> {
-    try {
-      const deletePromises = keys.map(key => this.deleteFile(key));
-      await Promise.all(deletePromises);
-    } catch (error) {
-      console.error('Multiple S3 delete error:', error);
-      throw createError('Failed to delete files from S3', 500);
-    }
+    const deletePromises = keys.map(key => this.deleteFile(key));
+    await Promise.all(deletePromises);
   }
 
   static getFileUrl(key: string): string {
-    if (!BUCKET_NAME || !process.env.AWS_REGION) {
-      return `/uploads/${key}`;
+    if (s3 && BUCKET_NAME && process.env.AWS_REGION) {
+      return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
     }
-    return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    return `/uploads/${key}`;
   }
 
   static extractKeyFromUrl(url: string): string {
-    if (!BUCKET_NAME || !process.env.AWS_REGION) {
-      // Extract from local URL
-      const localPattern = /\/uploads\/(.+)/;
-      const localMatch = url.match(localPattern);
-      return localMatch ? localMatch[1] : '';
-    }
+    if (!url) return '';
     
-    const bucketName = BUCKET_NAME;
-    const region = process.env.AWS_REGION;
-    const pattern = new RegExp(`https://${bucketName}\\.s3\\.${region}\\.amazonaws\\.com/(.+)`);
-    const match = url.match(pattern);
-    return match ? match[1] : '';
+    if (url.includes('amazonaws.com')) {
+      // S3 URL
+      const urlParts = url.split('.com/');
+      return urlParts[1] || '';
+    } else {
+      // Local URL
+      const urlParts = url.split('/uploads/');
+      return urlParts[1] || '';
+    }
   }
 } 

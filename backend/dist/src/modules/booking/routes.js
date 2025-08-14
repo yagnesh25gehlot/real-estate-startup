@@ -5,152 +5,69 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const express_validator_1 = require("express-validator");
+const multer_1 = __importDefault(require("multer"));
+const path_1 = __importDefault(require("path"));
 const service_1 = require("./service");
 const middleware_1 = require("../auth/middleware");
 const router = express_1.default.Router();
-router.post('/', [
+const paymentsStorage = multer_1.default.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path_1.default.join(process.cwd(), 'uploads', 'payments'));
+    },
+    filename: (req, file, cb) => {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, `${unique}-${file.originalname}`);
+    },
+});
+const uploadPaymentProof = (0, multer_1.default)({
+    storage: paymentsStorage,
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/'))
+            return cb(null, true);
+        return cb(new Error('Only image files are allowed as payment proof'));
+    },
+});
+router.post('/create', [
     (0, middleware_1.authMiddleware)(['USER', 'DEALER', 'ADMIN']),
-    (0, express_validator_1.body)('propertyId').isUUID(),
-    (0, express_validator_1.body)('startDate').isISO8601(),
-    (0, express_validator_1.body)('endDate').isISO8601(),
-    (0, express_validator_1.body)('amount').isFloat({ min: 0 }),
+    uploadPaymentProof.single('paymentProof'),
+    (0, express_validator_1.body)('propertyId').notEmpty(),
+    (0, express_validator_1.body)('dealerCode').optional().isString(),
+    (0, express_validator_1.body)('paymentRef').notEmpty().isString(),
 ], async (req, res, next) => {
     try {
         const errors = (0, express_validator_1.validationResult)(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                error: 'Validation failed',
-                details: errors.array(),
-            });
+            return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
         }
-        const { propertyId, startDate, endDate, amount } = req.body;
-        const booking = await service_1.BookingService.createBooking({
+        const { propertyId, dealerCode, paymentRef } = req.body;
+        const filePath = req.file ? `/uploads/payments/${path_1.default.basename(req.file.path)}` : undefined;
+        const result = await service_1.BookingService.createManualBooking({
             propertyId,
-            startDate,
-            endDate,
-            amount: parseFloat(amount),
-        }, req.user.id);
-        res.status(201).json({
-            success: true,
-            data: booking,
-        });
-    }
-    catch (error) {
-        next(error);
-    }
-});
-router.post('/payment-intent', [
-    (0, middleware_1.authMiddleware)(['USER', 'DEALER', 'ADMIN']),
-    (0, express_validator_1.body)('bookingId').isUUID(),
-    (0, express_validator_1.body)('amount').isFloat({ min: 0 }),
-    (0, express_validator_1.body)('currency').isIn(['usd', 'eur', 'gbp']),
-], async (req, res, next) => {
-    try {
-        const errors = (0, express_validator_1.validationResult)(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                error: 'Validation failed',
-                details: errors.array(),
-            });
-        }
-        const { bookingId, amount, currency } = req.body;
-        const paymentIntent = await service_1.BookingService.createPaymentIntent({
-            bookingId,
-            amount: parseFloat(amount),
-            currency,
-        });
-        res.json({
-            success: true,
-            data: {
-                clientSecret: paymentIntent.client_secret,
-                paymentIntentId: paymentIntent.id,
-            },
-        });
-    }
-    catch (error) {
-        next(error);
-    }
-});
-router.post('/create-payment-intent', [
-    (0, middleware_1.authMiddleware)(['USER', 'DEALER', 'ADMIN']),
-    (0, express_validator_1.body)('propertyId').isUUID(),
-    (0, express_validator_1.body)('startDate').isISO8601(),
-    (0, express_validator_1.body)('endDate').isISO8601(),
-    (0, express_validator_1.body)('amount').isFloat({ min: 0 }),
-], async (req, res, next) => {
-    try {
-        const errors = (0, express_validator_1.validationResult)(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                error: 'Validation failed',
-                details: errors.array(),
-            });
-        }
-        const { propertyId, startDate, endDate, amount } = req.body;
-        const paymentIntent = await service_1.BookingService.createPaymentIntentForBooking({
-            propertyId,
-            startDate,
-            endDate,
-            amount: parseFloat(amount),
             userId: req.user.id,
+            dealerCode,
+            paymentRef,
+            paymentProof: filePath,
         });
-        res.json({
-            success: true,
-            data: paymentIntent,
-        });
+        res.json({ success: true, data: result });
     }
     catch (error) {
         next(error);
     }
 });
-router.post('/confirm-payment', [
+router.post('/confirm', [
     (0, middleware_1.authMiddleware)(['USER', 'DEALER', 'ADMIN']),
-    (0, express_validator_1.body)('paymentIntentId').isString(),
-    (0, express_validator_1.body)('paymentMethodId').isString(),
-    (0, express_validator_1.body)('bookingData').isObject(),
+    (0, express_validator_1.body)('bookingId').notEmpty(),
+    (0, express_validator_1.body)('paymentIntentId').notEmpty(),
 ], async (req, res, next) => {
     try {
         const errors = (0, express_validator_1.validationResult)(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                error: 'Validation failed',
-                details: errors.array(),
-            });
+            return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
         }
-        const { paymentIntentId, paymentMethodId, bookingData } = req.body;
-        const booking = await service_1.BookingService.confirmPaymentAndCreateBooking({
-            paymentIntentId,
-            paymentMethodId,
-            bookingData,
-            userId: req.user.id,
-        });
-        res.json({
-            success: true,
-            data: booking,
-        });
-    }
-    catch (error) {
-        next(error);
-    }
-});
-router.post('/confirm-payment-webhook', async (req, res, next) => {
-    try {
-        const { paymentIntentId } = req.body;
-        if (!paymentIntentId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Payment intent ID is required',
-            });
-        }
-        const payment = await service_1.BookingService.confirmPayment(paymentIntentId);
-        res.json({
-            success: true,
-            data: payment,
-        });
+        const { bookingId, paymentIntentId } = req.body;
+        const booking = await service_1.BookingService.confirmBooking(bookingId, paymentIntentId);
+        res.json({ success: true, data: booking });
     }
     catch (error) {
         next(error);
@@ -158,19 +75,8 @@ router.post('/confirm-payment-webhook', async (req, res, next) => {
 });
 router.get('/my-bookings', (0, middleware_1.authMiddleware)(['USER', 'DEALER', 'ADMIN']), async (req, res, next) => {
     try {
-        const { status, propertyId } = req.query;
-        const filters = {};
-        if (status) {
-            filters.status = status;
-        }
-        if (propertyId) {
-            filters.propertyId = propertyId;
-        }
-        const bookings = await service_1.BookingService.getBookings(req.user.id, filters);
-        res.json({
-            success: true,
-            data: bookings,
-        });
+        const bookings = await service_1.BookingService.getUserBookings(req.user.id);
+        res.json({ success: true, data: bookings });
     }
     catch (error) {
         next(error);
@@ -178,19 +84,39 @@ router.get('/my-bookings', (0, middleware_1.authMiddleware)(['USER', 'DEALER', '
 });
 router.get('/', (0, middleware_1.authMiddleware)(['ADMIN']), async (req, res, next) => {
     try {
-        const { status, propertyId, userId } = req.query;
-        const filters = {};
-        if (status) {
-            filters.status = status;
-        }
-        if (propertyId) {
-            filters.propertyId = propertyId;
-        }
-        const bookings = await service_1.BookingService.getBookings(userId, filters);
-        res.json({
-            success: true,
-            data: bookings,
-        });
+        const { page = 1, limit = 10, status, search } = req.query;
+        const result = await service_1.BookingService.getAllBookings(parseInt(page), parseInt(limit), status, search);
+        res.json({ success: true, data: result });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+router.put('/:id/approve', (0, middleware_1.authMiddleware)(['ADMIN']), async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const booking = await service_1.BookingService.approveBooking(id);
+        res.json({ success: true, data: booking });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+router.put('/:id/reject', (0, middleware_1.authMiddleware)(['ADMIN']), async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        await service_1.BookingService.rejectBooking(id);
+        res.json({ success: true, message: 'Booking rejected successfully' });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+router.put('/:id/unbook', (0, middleware_1.authMiddleware)(['ADMIN']), async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const booking = await service_1.BookingService.unbookProperty(id);
+        res.json({ success: true, data: booking, message: 'Property unbooked successfully' });
     }
     catch (error) {
         next(error);
@@ -199,23 +125,18 @@ router.get('/', (0, middleware_1.authMiddleware)(['ADMIN']), async (req, res, ne
 router.get('/:id', (0, middleware_1.authMiddleware)(['USER', 'DEALER', 'ADMIN']), async (req, res, next) => {
     try {
         const { id } = req.params;
-        const booking = await service_1.BookingService.getBookingById(id);
-        if (!booking) {
-            return res.status(404).json({
-                success: false,
-                error: 'Booking not found',
-            });
+        if (req.user.role === 'ADMIN') {
+            const { bookings } = await service_1.BookingService.getAllBookings(1, 1000);
+            const found = bookings.find((b) => b.id === id);
+            if (!found)
+                return res.status(404).json({ success: false, error: 'Booking not found' });
+            return res.json({ success: true, data: found });
         }
-        if (booking.userId !== req.user.id && req.user.role !== 'ADMIN') {
-            return res.status(403).json({
-                success: false,
-                error: 'Unauthorized to view this booking',
-            });
-        }
-        res.json({
-            success: true,
-            data: booking,
-        });
+        const userBookings = await service_1.BookingService.getUserBookings(req.user.id);
+        const booking = userBookings.find((b) => b.id === id);
+        if (!booking)
+            return res.status(404).json({ success: false, error: 'Booking not found' });
+        res.json({ success: true, data: booking });
     }
     catch (error) {
         next(error);
@@ -224,31 +145,17 @@ router.get('/:id', (0, middleware_1.authMiddleware)(['USER', 'DEALER', 'ADMIN'])
 router.delete('/:id', (0, middleware_1.authMiddleware)(['USER', 'DEALER', 'ADMIN']), async (req, res, next) => {
     try {
         const { id } = req.params;
-        await service_1.BookingService.cancelBooking(id, req.user.id);
-        res.json({
-            success: true,
-            message: 'Booking cancelled successfully',
-        });
+        const booking = await service_1.BookingService.cancelBooking(id, req.user.id);
+        res.json({ success: true, data: booking, message: 'Booking cancelled successfully' });
     }
     catch (error) {
         next(error);
     }
 });
-router.get('/property/:propertyId/available-slots', async (req, res, next) => {
+router.post('/update-expired', (0, middleware_1.authMiddleware)(['ADMIN']), async (req, res, next) => {
     try {
-        const { propertyId } = req.params;
-        const { startDate, endDate } = req.query;
-        if (!startDate || !endDate) {
-            return res.status(400).json({
-                success: false,
-                error: 'Start date and end date are required',
-            });
-        }
-        const availableSlots = await service_1.BookingService.getAvailableTimeSlots(propertyId, startDate, endDate);
-        res.json({
-            success: true,
-            data: availableSlots,
-        });
+        await service_1.BookingService.updateExpiredBookings();
+        res.json({ success: true, message: 'Expired bookings updated successfully' });
     }
     catch (error) {
         next(error);

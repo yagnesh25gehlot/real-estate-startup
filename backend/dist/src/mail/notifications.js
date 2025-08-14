@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendWelcomeEmail = exports.sendCommissionEarningsEmail = exports.sendBookingConfirmationEmail = exports.sendDealerApprovalEmail = void 0;
+exports.sendWelcomeEmail = exports.sendManualBookingSubmittedEmail = exports.sendCommissionEarningsEmail = exports.sendBookingConfirmationEmail = exports.sendDealerApprovalEmail = void 0;
 const mailgun_js_1 = __importDefault(require("mailgun-js"));
 let mg = null;
 if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
@@ -64,7 +64,7 @@ const sendBookingConfirmationEmail = async (data) => {
             <li><strong>Property:</strong> ${data.propertyTitle}</li>
             <li><strong>Start Date:</strong> ${data.startDate}</li>
             <li><strong>End Date:</strong> ${data.endDate}</li>
-            <li><strong>Amount Paid:</strong> $${data.amount.toFixed(2)}</li>
+            <li><strong>Amount Paid:</strong> ₹${data.amount.toFixed(2)}</li>
             <li><strong>Booking ID:</strong> ${data.bookingId}</li>
           </ul>
         </div>
@@ -98,7 +98,7 @@ const sendCommissionEarningsEmail = async (data) => {
           <h3>Commission Details</h3>
           <ul>
             <li><strong>Property:</strong> ${data.propertyTitle}</li>
-            <li><strong>Commission Amount:</strong> $${data.commissionAmount.toFixed(2)}</li>
+            <li><strong>Commission Amount:</strong> ₹${data.commissionAmount.toFixed(2)}</li>
             <li><strong>Level:</strong> ${data.level}</li>
             <li><strong>Date:</strong> ${new Date().toLocaleDateString()}</li>
           </ul>
@@ -115,6 +115,43 @@ const sendCommissionEarningsEmail = async (data) => {
     }
 };
 exports.sendCommissionEarningsEmail = sendCommissionEarningsEmail;
+const sendManualBookingSubmittedEmail = async (adminEmail, payload) => {
+    try {
+        if (!mg) {
+            console.log('📧 ADMIN NOTIFICATION - New Booking Submitted:');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log(`👤 User: ${payload.user}`);
+            console.log(`🏠 Property: ${payload.property}`);
+            console.log(`💳 UPI Ref: ${payload.paymentRef}`);
+            console.log(`📅 Period: ${payload.start} - ${payload.end}`);
+            if (payload.proofUrl)
+                console.log(`📎 Proof: ${payload.proofUrl}`);
+            console.log(`🔗 Review at: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/bookings`);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            return;
+        }
+        await mg.messages().send({
+            from: `Property Platform <noreply@${process.env.MAILGUN_DOMAIN}>`,
+            to: adminEmail,
+            subject: 'New Booking Submitted - Approval Needed',
+            html: `
+        <h3>New Booking Submission</h3>
+        <ul>
+          <li><strong>User:</strong> ${payload.user}</li>
+          <li><strong>Property:</strong> ${payload.property}</li>
+          <li><strong>UPI Ref:</strong> ${payload.paymentRef}</li>
+          <li><strong>Period:</strong> ${payload.start} - ${payload.end}</li>
+          ${payload.proofUrl ? `<li><strong>Proof:</strong> ${payload.proofUrl}</li>` : ''}
+        </ul>
+        <p>Review in admin dashboard: ${process.env.FRONTEND_URL}/admin/bookings</p>
+      `,
+        });
+    }
+    catch (e) {
+        console.error('Email failed:', e);
+    }
+};
+exports.sendManualBookingSubmittedEmail = sendManualBookingSubmittedEmail;
 const sendWelcomeEmail = async (userEmail, userName, role) => {
     try {
         if (!mg) {

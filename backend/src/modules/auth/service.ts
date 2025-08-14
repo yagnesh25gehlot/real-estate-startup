@@ -10,15 +10,64 @@ const prisma = new PrismaClient();
 
 export class AuthService {
   static generateToken(user: User): string {
+    const payload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      iat: Math.floor(Date.now() / 1000),
+    };
+    
+    console.log('🔍 generateToken - Payload:', payload);
+    console.log('🔍 generateToken - JWT_SECRET exists:', !!process.env.JWT_SECRET);
+    
+    const token = jwt.sign(
+      payload,
+      process.env.JWT_SECRET!,
+      { 
+        expiresIn: process.env.NODE_ENV === 'production' ? '1h' : '7d', // 1 hour in production, 7 days in development
+        issuer: 'property-platform',
+        audience: 'property-platform-users'
+      }
+    );
+    
+    console.log('✅ generateToken - Token generated successfully');
+    return token;
+  }
+
+  static generateRefreshToken(user: User): string {
     return jwt.sign(
       {
         userId: user.id,
-        email: user.email,
-        role: user.role,
+        type: 'refresh',
+        iat: Math.floor(Date.now() / 1000),
       },
       process.env.JWT_SECRET!,
-      { expiresIn: '7d' }
+      { 
+        expiresIn: '7d',
+        issuer: 'property-platform',
+        audience: 'property-platform-users'
+      }
     );
+  }
+
+  static verifyToken(token: string): any {
+    try {
+      console.log('🔍 verifyToken - JWT_SECRET exists:', !!process.env.JWT_SECRET);
+      console.log('🔍 verifyToken - JWT_SECRET length:', process.env.JWT_SECRET?.length);
+      console.log('🔍 verifyToken - Token length:', token.length);
+      
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!, {
+        issuer: 'property-platform',
+        audience: 'property-platform-users'
+      });
+      console.log('✅ verifyToken - Decoded payload:', decoded);
+      console.log('✅ verifyToken - Decoded type:', typeof decoded);
+      console.log('✅ verifyToken - Decoded keys:', Object.keys(decoded));
+      return decoded;
+    } catch (error) {
+      console.log('❌ verifyToken - Error:', error);
+      throw createError('Invalid or expired token', 401);
+    }
   }
 
   // Validate password strength
@@ -47,7 +96,14 @@ export class AuthService {
   }
 
   // Regular user signup with email/password
-  static async signup(request: { email: string; name: string; password: string }): Promise<{ message: string }> {
+  static async signup(request: { 
+    email: string; 
+    name: string; 
+    password: string; 
+    mobile?: string; 
+    aadhaar?: string; 
+    aadhaarImage?: string; 
+  }): Promise<{ user: any }> {
     try {
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,14 +126,18 @@ export class AuthService {
         throw createError(passwordValidation.error!, 400);
       }
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(request.password, 12);
+      // Hash password with higher salt rounds for production
+      const saltRounds = process.env.NODE_ENV === 'production' ? 14 : 12;
+      const hashedPassword = await bcrypt.hash(request.password, saltRounds);
 
       // Create user with USER role
       const newUser = await prisma.user.create({
         data: {
           email: request.email.toLowerCase(),
           name: request.name.trim(),
+          mobile: request.mobile?.trim() || null,
+          aadhaar: request.aadhaar?.trim() || null,
+          aadhaarImage: request.aadhaarImage || null,
           role: 'USER',
           password: hashedPassword,
         },
@@ -87,24 +147,37 @@ export class AuthService {
       try {
         await NotificationService.notifyUserSignup(newUser);
       } catch (notificationError) {
-        console.error('Failed to send user signup notification:', notificationError);
-        // Don't fail the signup if notification fails
+        // Log error but don't fail the signup
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Failed to send user signup notification:', notificationError);
+        }
       }
 
+      // Return user data only (no token)
       return {
-        message: 'Account created successfully. Please sign in.',
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.name,
+          mobile: newUser.mobile,
+          aadhaar: newUser.aadhaar,
+          aadhaarImage: newUser.aadhaarImage,
+          profilePic: newUser.profilePic,
+          role: newUser.role,
+          createdAt: newUser.createdAt,
+          dealer: null, // New users don't have dealer data
+        }
       };
     } catch (error) {
-      if (error instanceof Error && error.message.includes('already exists')) {
-        throw error;
-      }
-      throw createError('Registration failed', 500);
+      throw error;
     }
   }
 
   // Regular user login with email/password
-  static async login(request: LoginRequest): Promise<LoginResponse> {
+  static async login(request: LoginRequest): Promise<{ user: any }> {
     try {
+      console.log('🔍 AuthService.login - Looking for email:', request.email.toLowerCase());
+      
       // Find user by email
       const user = await prisma.user.findUnique({
         where: { email: request.email.toLowerCase() },
@@ -112,7 +185,15 @@ export class AuthService {
       });
 
       if (!user) {
+        console.log('❌ AuthService.login - User not found');
         throw createError('Invalid email or password', 401);
+      }
+      
+      console.log('✅ AuthService.login - User found:', user.email, user.name, user.role);
+
+      // Check if user is blocked
+      if (user.status === 'BLOCKED') {
+        throw createError('Your account has been blocked. Please contact support.', 403);
       }
 
       // Check if user has password (for OAuth users)
@@ -145,6 +226,7 @@ export class AuthService {
           name: user.name,
           mobile: user.mobile,
           aadhaar: user.aadhaar,
+          aadhaarImage: user.aadhaarImage,
           profilePic: user.profilePic,
           role: user.role,
           createdAt: user.createdAt,
@@ -154,7 +236,6 @@ export class AuthService {
             status: user.dealer.status,
           } : null,
         },
-        token,
       };
     } catch (error) {
       if (error instanceof Error && error.message.includes('Invalid email or password')) {
@@ -225,6 +306,7 @@ export class AuthService {
           name: user.name,
           mobile: user.mobile,
           aadhaar: user.aadhaar,
+          aadhaarImage: user.aadhaarImage,
           profilePic: user.profilePic,
           role: user.role,
           createdAt: user.createdAt,
@@ -234,7 +316,6 @@ export class AuthService {
             status: user.dealer.status,
           } : null,
         },
-        token,
       };
     } catch (error) {
       if (error instanceof Error && error.message.includes('pending approval')) {
@@ -248,7 +329,12 @@ export class AuthService {
   }
 
   // Dealer signup (creates user with pending dealer status)
-  static async dealerSignup(request: DealerSignupRequest & { password: string }): Promise<{ message: string }> {
+  static async dealerSignup(request: DealerSignupRequest & { 
+    password: string; 
+    mobile?: string; 
+    aadhaar?: string; 
+    aadhaarImage?: string; 
+  }): Promise<{ message: string }> {
     try {
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -297,6 +383,9 @@ export class AuthService {
         data: {
           email: request.email.toLowerCase(),
           name: request.name.trim(),
+          mobile: request.mobile?.trim() || null,
+          aadhaar: request.aadhaar?.trim() || null,
+          aadhaarImage: request.aadhaarImage || null,
           role: 'USER', // Start as USER, will be upgraded to DEALER after approval
           password: hashedPassword,
         },
@@ -424,7 +513,12 @@ export class AuthService {
       return {
         message: 'Dealer application submitted successfully. Awaiting admin approval.',
       };
-    } catch (error) {
+    } catch (error: any) {
+      // If it's already a custom error, re-throw it
+      if (error.message && error.message !== 'Failed to submit dealer application') {
+        throw error;
+      }
+      // Otherwise, throw a generic error
       throw createError('Failed to submit dealer application', 500);
     }
   }
@@ -469,6 +563,7 @@ export class AuthService {
           email: updatedUser.email,
           mobile: updatedUser.mobile,
           aadhaar: updatedUser.aadhaar,
+          aadhaarImage: updatedUser.aadhaarImage,
           profilePic: updatedUser.profilePic,
           role: updatedUser.role,
           createdAt: updatedUser.createdAt,
@@ -493,6 +588,60 @@ export class AuthService {
       };
     } catch (error) {
       throw createError('Failed to update profile picture', 500);
+    }
+  }
+
+  // Update aadhaar image
+  static async updateAadhaarImage(userId: string, aadhaarImageUrl: string): Promise<{ message: string }> {
+    try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { aadhaarImage: aadhaarImageUrl },
+      });
+
+      return {
+        message: 'Aadhaar image updated successfully',
+      };
+    } catch (error) {
+      throw createError('Failed to update aadhaar image', 500);
+    }
+  }
+
+  static async getUserProfile(userId: string): Promise<any> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          dealer: {
+            select: {
+              id: true,
+              referralCode: true,
+              status: true,
+              commission: true,
+            }
+          }
+        }
+      });
+
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        mobile: user.mobile,
+        aadhaar: user.aadhaar,
+        aadhaarImage: user.aadhaarImage,
+        profilePic: user.profilePic,
+        role: user.role,
+        status: user.status,
+        createdAt: user.createdAt,
+        dealer: user.dealer,
+      };
+    } catch (error) {
+      throw createError('Failed to get user profile', 500);
     }
   }
 
@@ -639,23 +788,7 @@ export class AuthService {
     }
   }
 
-  // Verify token and get user
-  static async verifyToken(token: string): Promise<User> {
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-      });
 
-      if (!user) {
-        throw createError('User not found', 401);
-      }
-
-      return user;
-    } catch (error) {
-      throw createError('Invalid token', 401);
-    }
-  }
 
   // Check if user can access dealer features
   static async checkDealerAccess(userId: string): Promise<boolean> {

@@ -7,10 +7,19 @@ const router = express.Router();
 // Get all admin notifications
 router.get('/', authMiddleware(['ADMIN']), async (req, res, next) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, search, type, read, date } = req.query;
+    
+    const filters = {
+      search: search as string,
+      type: type as string,
+      read: read as string,
+      date: date as string,
+    };
+
     const result = await NotificationService.getAdminNotifications(
       parseInt(page as string),
-      parseInt(limit as string)
+      parseInt(limit as string),
+      filters
     );
     res.json({ success: true, data: result });
   } catch (error) {

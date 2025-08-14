@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   User, 
@@ -17,13 +18,15 @@ import {
   CreditCard,
   Home,
   DollarSign,
-  FileText
+  FileText,
+  ArrowLeft
 } from 'lucide-react';
 import { bookingsApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
 
 const AdminBookings = () => {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +41,7 @@ const AdminBookings = () => {
 
   useEffect(() => {
     console.log('🔄 AdminBookings: Fetching data...');
-    console.log('🔑 Auth check - localStorage token:', localStorage.getItem('token') ? 'Present' : 'Missing');
+    console.log('🔑 Auth check - localStorage user:', localStorage.getItem('user') ? 'Present' : 'Missing');
     console.log('🔑 Auth check - localStorage user:', localStorage.getItem('user') ? 'Present' : 'Missing');
     fetchBookings();
     fetchStats();
@@ -85,10 +88,23 @@ const AdminBookings = () => {
   };
 
   const handleApproveBooking = async (bookingId: string) => {
-    if (window.confirm('Are you sure you want to approve this booking?')) {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    const confirmMessage = `Are you sure you want to approve this booking?
+
+Property: ${booking.property?.title || 'Unknown Property'}
+User: ${booking.user?.name || 'Unknown User'}
+Period: ${formatDateTime(booking.startDate)} - ${formatDateTime(booking.endDate)}
+
+⚠️  WARNING: This will automatically cancel all other pending bookings for this property during the same time period.
+
+Do you want to proceed?`;
+
+    if (window.confirm(confirmMessage)) {
       try {
         await bookingsApi.approve(bookingId);
-        toast.success('Booking approved successfully!');
+        toast.success('Booking approved successfully! All conflicting bookings have been cancelled.');
         fetchBookings();
         fetchStats();
       } catch (error: any) {
@@ -111,16 +127,45 @@ const AdminBookings = () => {
   };
 
   const handleUnbookProperty = async (bookingId: string) => {
-    if (window.confirm('Are you sure you want to unbook this property? This will cancel the confirmed booking and make the property available again.')) {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    const confirmMessage = `Are you sure you want to unbook this property?
+
+Property: ${booking.property?.title || 'Unknown Property'}
+User: ${booking.user?.name || 'Unknown User'}
+Period: ${formatDateTime(booking.startDate)} - ${formatDateTime(booking.endDate)}
+
+This will:
+• Cancel the confirmed booking
+• Make the property available again
+• Allow other users to book this property
+
+Do you want to proceed?`;
+
+    if (window.confirm(confirmMessage)) {
       try {
         await bookingsApi.unbook(bookingId);
-        toast.success('Property unbooked successfully!');
+        toast.success('Property unbooked successfully! Property is now available for new bookings.');
         fetchBookings();
         fetchStats();
       } catch (error: any) {
         toast.error(error.response?.data?.error || 'Failed to unbook property');
       }
     }
+  };
+
+  // Check for conflicting bookings for a specific booking
+  const getConflictingBookings = (booking: any) => {
+    if (booking.status !== 'PENDING') return [];
+    
+    return bookings.filter(otherBooking => 
+      otherBooking.id !== booking.id &&
+      otherBooking.propertyId === booking.propertyId &&
+      otherBooking.status === 'PENDING' &&
+      new Date(otherBooking.startDate) <= new Date(booking.endDate) &&
+      new Date(otherBooking.endDate) >= new Date(booking.startDate)
+    );
   };
 
   const handleViewBooking = async (bookingId: string) => {
@@ -171,6 +216,25 @@ const AdminBookings = () => {
     });
   };
 
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const formatTimeOnly = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
       minimumFractionDigits: 0,
@@ -208,13 +272,43 @@ const AdminBookings = () => {
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Management</h1>
-          <p className="text-gray-600">Manage all property bookings and track revenue</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/admin')}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                Back to Dashboard
+              </button>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Booking Management</h1>
+                <p className="text-gray-600 mt-1">Manage all property bookings and track revenue</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-blue-600">{stats?.totalBookings || 0}</div>
+              <div className="text-sm text-gray-600">Total Bookings</div>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+            {/* Add conflict summary */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-orange-600 mr-2" />
+                <div>
+                  <p className="text-sm font-medium text-orange-900">Conflicts</p>
+                  <p className="text-lg font-semibold text-orange-800">
+                    {bookings.filter(b => b.status === 'PENDING' && getConflictingBookings(b).length > 0).length}
+                  </p>
+                  <p className="text-xs text-orange-700">Pending with conflicts</p>
+                </div>
+              </div>
+            </div>
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="p-3 rounded-lg bg-blue-100">
@@ -279,6 +373,22 @@ const AdminBookings = () => {
 
         {/* Actions */}
         <div className="bg-white rounded-lg shadow mb-6">
+          {/* Conflict Warning Banner */}
+          {bookings.filter(b => b.status === 'PENDING' && getConflictingBookings(b).length > 0).length > 0 && (
+            <div className="bg-orange-50 border-b border-orange-200 p-4">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-orange-600 mr-2" />
+                <div>
+                  <p className="text-sm font-medium text-orange-900">
+                    ⚠️ Conflict Alert: {bookings.filter(b => b.status === 'PENDING' && getConflictingBookings(b).length > 0).length} pending booking(s) have conflicts
+                  </p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    When you approve a booking, all conflicting pending bookings for the same property and time period will be automatically cancelled.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="p-6 border-b">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -339,7 +449,7 @@ const AdminBookings = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Booking
+                    Booking (Created)
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Property
@@ -348,7 +458,7 @@ const AdminBookings = () => {
                     User
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Dates
+                    Dates & Time
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Amount
@@ -372,7 +482,7 @@ const AdminBookings = () => {
                         #{booking.id.slice(0, 8)}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {formatDate(booking.createdAt)}
+                        {formatDateTime(booking.createdAt)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -394,10 +504,10 @@ const AdminBookings = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {formatDate(booking.startDate)}
+                        {formatDateTime(booking.startDate)}
                       </div>
                       <div className="text-sm text-gray-500">
-                        to {formatDate(booking.endDate)}
+                        to {formatDateTime(booking.endDate)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -418,6 +528,19 @@ const AdminBookings = () => {
                           {booking.status}
                         </span>
                       </div>
+                      {/* Show conflict warning for pending bookings */}
+                      {booking.status === 'PENDING' && getConflictingBookings(booking).length > 0 && (
+                        <div className="mt-1">
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            {getConflictingBookings(booking).length} conflicting booking{getConflictingBookings(booking).length > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+                      {/* Show property status */}
+                      <div className="mt-1 text-xs text-gray-500">
+                        Property: {booking.property?.status || 'Unknown'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {booking.dealerCode ? (
@@ -431,40 +554,58 @@ const AdminBookings = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                      <div className="flex flex-col space-y-2">
+                        {/* Status-specific actions */}
                         {booking.status === 'PENDING' && (
-                          <>
+                          <div className="flex space-x-2">
                             <button 
                               onClick={() => handleApproveBooking(booking.id)}
-                              className="text-green-600 hover:text-green-900 flex items-center"
+                              className="text-green-600 hover:text-green-900 flex items-center px-2 py-1 rounded border border-green-200 hover:bg-green-50"
+                              title={getConflictingBookings(booking).length > 0 ? 
+                                `This will cancel ${getConflictingBookings(booking).length} other pending booking(s)` : 
+                                'Approve this booking'}
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Approve
                             </button>
                             <button 
                               onClick={() => handleRejectBooking(booking.id)}
-                              className="text-red-600 hover:text-red-900 flex items-center"
+                              className="text-red-600 hover:text-red-900 flex items-center px-2 py-1 rounded border border-red-200 hover:bg-red-50"
                             >
                               <X className="h-4 w-4 mr-1" />
                               Reject
                             </button>
-                          </>
+                          </div>
                         )}
                         {booking.status === 'CONFIRMED' && (
-                          <button 
-                            onClick={() => handleUnbookProperty(booking.id)}
-                            className="text-orange-600 hover:text-orange-900 flex items-center"
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Unbook
-                          </button>
+                          <div className="flex space-x-2">
+                            <button 
+                              onClick={() => handleUnbookProperty(booking.id)}
+                              className="text-orange-600 hover:text-orange-900 flex items-center px-2 py-1 rounded border border-orange-200 hover:bg-orange-50"
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Unbook
+                            </button>
+                          </div>
                         )}
+                        {booking.status === 'CANCELLED' && (
+                          <div className="text-xs text-gray-500">
+                            No actions available
+                          </div>
+                        )}
+                        {booking.status === 'EXPIRED' && (
+                          <div className="text-xs text-gray-500">
+                            No actions available
+                          </div>
+                        )}
+                        
+                        {/* View button for all statuses */}
                         <button 
                           onClick={() => handleViewBooking(booking.id)}
-                          className="text-blue-600 hover:text-blue-900 flex items-center"
+                          className="text-blue-600 hover:text-blue-900 flex items-center px-2 py-1 rounded border border-blue-200 hover:bg-blue-50"
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          View
+                          View Details
                         </button>
                       </div>
                     </td>
@@ -575,7 +716,7 @@ const AdminBookings = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Booking Period</p>
                   <p className="text-sm text-gray-900">
-                    {formatDate(selectedBooking.startDate)} - {formatDate(selectedBooking.endDate)}
+                    {formatDateTime(selectedBooking.startDate)} - {formatDateTime(selectedBooking.endDate)}
                   </p>
                 </div>
               </div>
@@ -706,7 +847,7 @@ const AdminBookings = () => {
                 <Clock className="h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-sm font-medium text-gray-500">Created</p>
-                  <p className="text-sm text-gray-900">{formatDate(selectedBooking.createdAt)}</p>
+                  <p className="text-sm text-gray-900">{formatDateTime(selectedBooking.createdAt)}</p>
                 </div>
               </div>
             </div>

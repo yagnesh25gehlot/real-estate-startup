@@ -21,9 +21,22 @@ export interface LoginResponse {
         id: string;
         email: string;
         name: string | null;
+        mobile?: string | null;
+        aadhaar?: string | null;
+        aadhaarImage?: string | null;
+        profilePic?: string | null;
         role: Role;
+        createdAt: Date;
+        dealer?: {
+            id: string;
+            referralCode: string;
+            status: string;
+        } | null;
     };
-    token: string;
+}
+export interface LoginRequest {
+    email: string;
+    password: string;
 }
 export interface DealerSignupRequest {
     email: string;

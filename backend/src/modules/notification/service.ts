@@ -20,7 +20,7 @@ export class NotificationService {
           type: data.type,
           title: data.title,
           message: data.message,
-          data: data.data || {},
+          data: data.data ? JSON.stringify(data.data) : null,
           adminOnly: data.adminOnly || false,
         },
       });
@@ -41,20 +41,60 @@ export class NotificationService {
   }
 
   // Get all notifications for admin
-  static async getAdminNotifications(page: number = 1, limit: number = 20): Promise<any> {
+  static async getAdminNotifications(page: number = 1, limit: number = 20, filters: any = {}): Promise<any> {
     try {
       const skip = (page - 1) * limit;
 
+      // Build where clause
+      const where: any = { adminOnly: true };
+
+      // Type filter
+      if (filters.type) {
+        where.type = filters.type;
+      }
+
+      // Read status filter
+      if (filters.read !== undefined) {
+        where.read = filters.read === 'true';
+      }
+
+      // Search filter
+      if (filters.search) {
+        where.OR = [
+          { title: { contains: filters.search, mode: 'insensitive' } },
+          { message: { contains: filters.search, mode: 'insensitive' } },
+        ];
+      }
+
+      // Date filter
+      if (filters.date) {
+        const now = new Date();
+        let filterDate = new Date();
+        
+        switch (filters.date) {
+          case 'TODAY':
+            filterDate.setHours(0, 0, 0, 0);
+            where.createdAt = { gte: filterDate };
+            break;
+          case 'WEEK':
+            filterDate.setDate(filterDate.getDate() - 7);
+            where.createdAt = { gte: filterDate };
+            break;
+          case 'MONTH':
+            filterDate.setMonth(filterDate.getMonth() - 1);
+            where.createdAt = { gte: filterDate };
+            break;
+        }
+      }
+
       const [notifications, total] = await Promise.all([
         prisma.notification.findMany({
-          where: { adminOnly: true },
+          where,
           orderBy: { createdAt: 'desc' },
           skip,
           take: limit,
         }),
-        prisma.notification.count({
-          where: { adminOnly: true },
-        }),
+        prisma.notification.count({ where }),
       ]);
 
       return {

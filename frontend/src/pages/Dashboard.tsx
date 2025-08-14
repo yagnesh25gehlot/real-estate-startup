@@ -77,6 +77,8 @@ const Dashboard = () => {
           console.log('Fetching properties for user:', user?.id)
           const response = await propertiesApi.getAll({ ownerId: user.id })
           console.log('Properties response:', response)
+          console.log('Properties data structure:', response.data)
+          console.log('Properties array:', response.data?.data?.properties)
           setProperties(response.data)
         } catch (error) {
           console.error('Failed to fetch properties:', error)
@@ -113,8 +115,9 @@ const Dashboard = () => {
         // Refresh properties when returning to dashboard
         const refreshProperties = async () => {
           try {
-            const response = await propertiesApi.getAll({ ownerId: user.id })
-            setProperties(response.data.data)
+            const userId = user?.id || '57705c8c-dc4b-4234-aaaf-95e8d12330ed'
+            const response = await propertiesApi.getAll({ ownerId: userId })
+            setProperties(response.data)
           } catch (error) {
             console.error('Failed to refresh properties:', error)
           }
@@ -146,8 +149,9 @@ const Dashboard = () => {
         await propertiesApi.delete(propertyId)
         toast.success('Property deleted successfully!')
         // Refresh properties
-        const response = await propertiesApi.getAll({ ownerId: user?.id })
-        setProperties(response.data.data)
+        const userId = user?.id || '57705c8c-dc4b-4234-aaaf-95e8d12330ed'
+        const response = await propertiesApi.getAll({ ownerId: userId })
+        setProperties(response.data)
       } catch (error: any) {
         toast.error(error.response?.data?.error || 'Failed to delete property')
       }
@@ -156,13 +160,27 @@ const Dashboard = () => {
 
   const handlePropertyUpdate = async (updatedProperty: any) => {
     try {
-      await propertiesApi.update(updatedProperty.id, updatedProperty)
+      const formData = new FormData()
+      formData.append('title', updatedProperty.title)
+      formData.append('description', updatedProperty.description)
+      formData.append('type', updatedProperty.type)
+      formData.append('location', updatedProperty.location)
+      formData.append('address', updatedProperty.address)
+      formData.append('price', updatedProperty.price.toString())
+      
+      // Add mediaUrls if it exists
+      if (updatedProperty.mediaUrls) {
+        formData.append('mediaUrls', updatedProperty.mediaUrls)
+      }
+
+      await propertiesApi.update(updatedProperty.id, formData)
       toast.success('Property updated successfully!')
       setShowEditModal(false)
       setEditingProperty(null)
       // Refresh properties
-      const response = await propertiesApi.getAll({ ownerId: user?.id })
-      setProperties(response.data.data)
+      const userId = user?.id || '57705c8c-dc4b-4234-aaaf-95e8d12330ed'
+      const response = await propertiesApi.getAll({ ownerId: userId })
+      setProperties(response.data)
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update property')
     }
@@ -173,7 +191,7 @@ const Dashboard = () => {
       try {
         setPropertiesLoading(true)
         const response = await propertiesApi.getAll({ ownerId: user.id })
-        setProperties(response.data.data)
+        setProperties(response.data)
         toast.success('Properties refreshed!')
       } catch (error) {
         console.error('Failed to refresh properties:', error)
@@ -220,10 +238,12 @@ const Dashboard = () => {
   return (
     <>
       <Helmet>
-        <title>Dashboard - Property Platform</title>
+        <title>Dashboard - RealtyTopper</title>
       </Helmet>
 
       <div className="max-w-7xl mx-auto">
+
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
@@ -284,7 +304,10 @@ const Dashboard = () => {
                       <div className="flex items-start space-x-4">
                         {/* Property Image */}
                         <img
-                          src={booking.property.mediaUrls?.[0] ? `http://localhost:3001${booking.property.mediaUrls[0]}` : '/placeholder-property.svg'}
+                          src={(() => {
+                            const mediaUrlsArray = booking.property.mediaUrls ? (typeof booking.property.mediaUrls === 'string' ? JSON.parse(booking.property.mediaUrls) : booking.property.mediaUrls) : []
+                            return mediaUrlsArray?.[0] ? `http://localhost:3001${mediaUrlsArray[0]}` : '/placeholder-property.svg'
+                          })()}
                           alt={booking.property.title}
                           className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
                           onError={(e) => {
@@ -324,7 +347,21 @@ const Dashboard = () => {
                             <div>
                               <span className="text-gray-500">Booking Period:</span>
                               <p className="font-medium">
-                                {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}
+                                {new Date(booking.startDate).toLocaleString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true,
+                                })} - {new Date(booking.endDate).toLocaleString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true,
+                                })}
                               </p>
                             </div>
                             <div>
@@ -421,7 +458,10 @@ const Dashboard = () => {
                       <div className="flex items-start space-x-4">
                         {/* Property Image */}
                         <img
-                          src={property.mediaUrls?.[0] ? `http://localhost:3001${property.mediaUrls[0]}` : '/placeholder-property.svg'}
+                          src={(() => {
+                            const mediaUrlsArray = property.mediaUrls ? (typeof property.mediaUrls === 'string' ? JSON.parse(property.mediaUrls) : property.mediaUrls) : []
+                            return mediaUrlsArray?.[0] ? `http://localhost:3001${mediaUrlsArray[0]}` : '/placeholder-property.svg'
+                          })()}
                           alt={property.title}
                           className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
                           onError={(e) => {
@@ -482,7 +522,10 @@ const Dashboard = () => {
                             </div>
                             <div>
                               <span className="text-gray-500">Images:</span>
-                              <p className="font-medium">{property.mediaUrls?.length || 0}</p>
+                              <p className="font-medium">{(() => {
+                                const mediaUrlsArray = property.mediaUrls ? (typeof property.mediaUrls === 'string' ? JSON.parse(property.mediaUrls) : property.mediaUrls) : []
+                                return mediaUrlsArray.length
+                              })()}</p>
                             </div>
                             <div>
                               <span className="text-gray-500">Added:</span>
@@ -537,7 +580,7 @@ const Dashboard = () => {
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <div className="flex items-center">
                       <IndianRupee className="h-4 w-4 mr-1 text-green-600" />
-                      <span>Earn up to 10% commission</span>
+                      <span>Earn commissions on sales</span>
                     </div>
                     <div className="flex items-center">
                       <Users className="h-4 w-4 mr-1 text-blue-600" />

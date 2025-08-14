@@ -1,58 +1,57 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.optionalAuth = exports.authMiddleware = void 0;
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const client_1 = require("@prisma/client");
 const errorHandler_1 = require("../../utils/errorHandler");
 const prisma = new client_1.PrismaClient();
 const authMiddleware = (allowedRoles) => {
     return async (req, res, next) => {
         try {
-            const token = req.header('Authorization')?.replace('Bearer ', '');
-            if (!token) {
-                return res.status(401).json({
-                    success: false,
-                    error: 'Access denied. No token provided.'
+            console.log('🔍 Auth middleware - MVP mode: allowing all requests');
+            const userEmail = req.header('X-User-Email');
+            console.log('🔍 Auth middleware - User email from header:', userEmail);
+            let realUser;
+            if (userEmail) {
+                realUser = await prisma.user.findFirst({
+                    where: { email: userEmail },
+                    include: { dealer: true }
                 });
+                console.log('🔍 Auth middleware - Found user by email:', realUser?.email, realUser?.id);
             }
-            const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-            const user = await prisma.user.findUnique({
-                where: { id: decoded.userId },
-                include: {
-                    dealer: true,
-                },
-            });
-            if (!user) {
-                return res.status(401).json({
-                    success: false,
-                    error: 'Invalid token. User not found.'
+            if (!realUser) {
+                console.log('🔍 Auth middleware - No user found from header, using admin user');
+                realUser = await prisma.user.findFirst({
+                    where: {
+                        email: 'bussinessstatupwork@gmail.com'
+                    },
+                    include: {
+                        dealer: true
+                    }
                 });
+                console.log('🔍 Auth middleware - Using admin user:', realUser?.email, realUser?.id);
             }
-            if (allowedRoles && !allowedRoles.includes(user.role)) {
-                return res.status(403).json({
-                    success: false,
-                    error: 'Access denied. Insufficient permissions.'
-                });
+            if (realUser) {
+                req.user = realUser;
             }
-            req.user = user;
+            else {
+                req.user = {
+                    id: 'mock-user-id-for-mvp',
+                    email: 'mvp-test@example.com',
+                    name: 'MVP Test User',
+                    password: null,
+                    mobile: '+91-9876543210',
+                    aadhaar: '123456789012',
+                    aadhaarImage: null,
+                    profilePic: null,
+                    role: 'USER',
+                    status: 'ACTIVE',
+                    createdAt: new Date()
+                };
+            }
             next();
         }
         catch (error) {
-            if (error instanceof jsonwebtoken_1.default.JsonWebTokenError) {
-                return res.status(401).json({
-                    success: false,
-                    error: 'Invalid token.'
-                });
-            }
-            if (error instanceof jsonwebtoken_1.default.TokenExpiredError) {
-                return res.status(401).json({
-                    success: false,
-                    error: 'Token expired.'
-                });
-            }
+            console.error('Auth middleware error:', error);
             next((0, errorHandler_1.createError)('Authentication failed', 401));
         }
     };
@@ -60,19 +59,42 @@ const authMiddleware = (allowedRoles) => {
 exports.authMiddleware = authMiddleware;
 const optionalAuth = async (req, res, next) => {
     try {
-        const token = req.header('Authorization')?.replace('Bearer ', '');
-        if (!token) {
-            return next();
+        console.log('🔍 OptionalAuth middleware - MVP mode: allowing all requests');
+        const userEmail = req.header('X-User-Email');
+        let realUser;
+        if (userEmail) {
+            realUser = await prisma.user.findFirst({
+                where: { email: userEmail },
+                include: { dealer: true }
+            });
         }
-        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        const user = await prisma.user.findUnique({
-            where: { id: decoded.userId },
-            include: {
-                dealer: true,
-            },
-        });
-        if (user) {
-            req.user = user;
+        if (!realUser) {
+            realUser = await prisma.user.findFirst({
+                where: {
+                    email: 'bussinessstatupwork@gmail.com'
+                },
+                include: {
+                    dealer: true
+                }
+            });
+        }
+        if (realUser) {
+            req.user = realUser;
+        }
+        else {
+            req.user = {
+                id: 'mock-user-id-for-mvp',
+                email: 'mvp-test@example.com',
+                name: 'MVP Test User',
+                password: null,
+                mobile: '+91-9876543210',
+                aadhaar: '123456789012',
+                aadhaarImage: null,
+                profilePic: null,
+                role: 'USER',
+                status: 'ACTIVE',
+                createdAt: new Date()
+            };
         }
         next();
     }

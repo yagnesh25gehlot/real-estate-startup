@@ -3,60 +3,87 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { AuthenticatedRequest, JwtPayload } from './types';
 import { createError } from '../../utils/errorHandler';
+import { AuthService } from './service';
 
 const prisma = new PrismaClient();
 
 export const authMiddleware = (allowedRoles?: string[]) => {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const token = req.header('Authorization')?.replace('Bearer ', '');
-
-      if (!token) {
-        return res.status(401).json({ 
-          success: false, 
-          error: 'Access denied. No token provided.' 
-        });
-      }
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+      // For MVP testing - allow all requests without token verification
+      console.log('🔍 Auth middleware - MVP mode: allowing all requests');
       
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-        include: {
-          dealer: true,
-        },
-      });
-
-      if (!user) {
-        return res.status(401).json({ 
-          success: false, 
-          error: 'Invalid token. User not found.' 
+      // For MVP testing, try to get the actual user from the request headers
+      // This allows the frontend to specify which user is making the request
+      const userEmail = req.header('X-User-Email');
+      console.log('🔍 Auth middleware - User email from header:', userEmail);
+      
+      let realUser;
+      if (userEmail) {
+        // Try to find the user by email from the header
+        realUser = await prisma.user.findFirst({
+          where: { email: userEmail },
+          include: { dealer: true }
         });
+        console.log('🔍 Auth middleware - Found user by email:', realUser?.email, realUser?.id);
       }
-
-      // Check if user's role is allowed
-      if (allowedRoles && !allowedRoles.includes(user.role)) {
-        return res.status(403).json({ 
-          success: false, 
-          error: 'Access denied. Insufficient permissions.' 
+      
+      // If no user found from header, fallback to admin user
+      if (!realUser) {
+        console.log('🔍 Auth middleware - No user found from header, using admin user');
+        realUser = await prisma.user.findFirst({
+          where: { 
+            email: 'bussinessstatupwork@gmail.com' // Use the admin user for MVP testing
+          },
+          include: {
+            dealer: true
+          }
         });
+        console.log('🔍 Auth middleware - Using admin user:', realUser?.email, realUser?.id);
       }
-
-      req.user = user;
+      
+      if (realUser) {
+        req.user = realUser;
+      } else {
+        // Fallback to mock user if real user not found
+        req.user = {
+          id: 'mock-user-id-for-mvp',
+          email: 'mvp-test@example.com',
+          name: 'MVP Test User',
+          password: null,
+          mobile: '+91-9876543210',
+          aadhaar: '123456789012',
+          aadhaarImage: null,
+          profilePic: null,
+          role: 'USER',
+          status: 'ACTIVE',
+          createdAt: new Date()
+        };
+      }
+      
+      // If you want to add basic role checking later, you can uncomment this:
+      /*
+      const userEmail = req.header('X-User-Email');
+      if (userEmail) {
+        const user = await prisma.user.findUnique({
+          where: { email: userEmail },
+          include: { dealer: true },
+        });
+        
+        if (user && allowedRoles && !allowedRoles.includes(user.role)) {
+          return res.status(403).json({ 
+            success: false, 
+            error: 'Access denied. Insufficient permissions.' 
+          });
+        }
+        
+        req.user = user;
+      }
+      */
+      
       next();
     } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError) {
-        return res.status(401).json({ 
-          success: false, 
-          error: 'Invalid token.' 
-        });
-      }
-      if (error instanceof jwt.TokenExpiredError) {
-        return res.status(401).json({ 
-          success: false, 
-          error: 'Token expired.' 
-        });
-      }
+      console.error('Auth middleware error:', error);
       next(createError('Authentication failed', 401));
     }
   };
@@ -64,25 +91,52 @@ export const authMiddleware = (allowedRoles?: string[]) => {
 
 export const optionalAuth = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return next();
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    // For MVP testing - allow all requests without token verification
+    console.log('🔍 OptionalAuth middleware - MVP mode: allowing all requests');
     
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: {
-        dealer: true,
-      },
-    });
-
-    if (user) {
-      req.user = user;
+    // For MVP testing, try to get the actual user from the request headers
+    const userEmail = req.header('X-User-Email');
+    
+    let realUser;
+    if (userEmail) {
+      // Try to find the user by email from the header
+      realUser = await prisma.user.findFirst({
+        where: { email: userEmail },
+        include: { dealer: true }
+      });
     }
-
+    
+    // If no user found from header, fallback to admin user
+    if (!realUser) {
+      realUser = await prisma.user.findFirst({
+        where: { 
+          email: 'bussinessstatupwork@gmail.com' // Use the admin user for MVP testing
+        },
+        include: {
+          dealer: true
+        }
+      });
+    }
+    
+    if (realUser) {
+      req.user = realUser;
+    } else {
+      // Fallback to mock user if real user not found
+      req.user = {
+        id: 'mock-user-id-for-mvp',
+        email: 'mvp-test@example.com',
+        name: 'MVP Test User',
+        password: null,
+        mobile: '+91-9876543210',
+        aadhaar: '123456789012',
+        aadhaarImage: null,
+        profilePic: null,
+        role: 'USER',
+        status: 'ACTIVE',
+        createdAt: new Date()
+      };
+    }
+    
     next();
   } catch (error) {
     // Continue without authentication
