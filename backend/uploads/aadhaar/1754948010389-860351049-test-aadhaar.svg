@@ -1,8 +1,0 @@
-<svg width="200" height="120" xmlns="http://www.w3.org/2000/svg">
-  <rect width="200" height="120" fill="#1E40AF"/>
-  <rect x="10" y="10" width="180" height="100" fill="white" stroke="#1E40AF" stroke-width="2"/>
-  <text x="100" y="35" text-anchor="middle" fill="#1E40AF" font-size="12" font-weight="bold">AADHAAR CARD</text>
-  <text x="100" y="55" text-anchor="middle" fill="#1E40AF" font-size="10">Test Card</text>
-  <text x="100" y="75" text-anchor="middle" fill="#1E40AF" font-size="8">1234-5678-9012</text>
-  <text x="100" y="95" text-anchor="middle" fill="#1E40AF" font-size="8">TEST IMAGE</text>
-</svg>

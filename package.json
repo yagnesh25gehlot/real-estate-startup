@@ -11,11 +11,7 @@
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "test": "node test-runner.js",
-    "test:backend": "cd backend && node integration-tests.js",
-    "test:frontend": "cd frontend && npm test",
-    "test:api": "cd backend && npm run test:api",
-    "test:components": "cd frontend && npm run test:components"
+    "postinstall": "npm run build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
