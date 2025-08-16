@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Building2, Mail, User, Users, CheckCircle, Lock, Eye, EyeOff, Phone, CreditCard } from 'lucide-react'
+import { Building2, Mail, User, Users, CheckCircle, Lock, Eye, EyeOff, Phone, CreditCard, Upload, X } from 'lucide-react'
 import { authApi } from '../services/api'
 
 const DealerSignup = () => {
@@ -19,6 +19,8 @@ const DealerSignup = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [aadhaarImage, setAadhaarImage] = useState<File | null>(null)
+  const [aadhaarPreview, setAadhaarPreview] = useState<string | null>(null)
 
   const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
     const errors: string[] = []
@@ -44,6 +46,33 @@ const DealerSignup = () => {
     }
     
     return { isValid: errors.length === 0, errors }
+  }
+
+  const handleAadhaarImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error('Image size should be less than 5MB')
+        return
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select a valid image file')
+        return
+      }
+      
+      setAadhaarImage(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setAadhaarPreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeAadhaarImage = () => {
+    setAadhaarImage(null)
+    setAadhaarPreview(null)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,7 +113,19 @@ const DealerSignup = () => {
 
     setIsSubmitting(true)
     try {
-      await authApi.dealerSignup(formData)
+      const formDataToSend = new FormData()
+      formDataToSend.append('email', formData.email)
+      formDataToSend.append('name', formData.name)
+      formDataToSend.append('mobile', formData.mobile)
+      formDataToSend.append('aadhaar', formData.aadhaar)
+      formDataToSend.append('password', formData.password)
+      formDataToSend.append('referralCode', formData.referralCode)
+      
+      if (aadhaarImage) {
+        formDataToSend.append('aadhaarImage', aadhaarImage)
+      }
+      
+      await authApi.dealerSignup(formDataToSend)
       toast.success('Dealer registration submitted successfully! Awaiting admin approval. You can sign in as a regular user while waiting.')
       navigate('/login')
     } catch (error: any) {
@@ -97,7 +138,7 @@ const DealerSignup = () => {
   return (
     <>
       <Helmet>
-        <title>Become a Dealer - Property Platform</title>
+        <title>Become a Dealer - RealtyTopper</title>
       </Helmet>
 
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -223,6 +264,47 @@ const DealerSignup = () => {
               </div>
 
               <div>
+                <label htmlFor="aadhaarImage" className="label">
+                  Aadhaar Card Image <span className="text-gray-500">(Optional)</span>
+                </label>
+                <div className="space-y-3">
+                  {aadhaarPreview ? (
+                    <div className="relative">
+                      <img 
+                        src={aadhaarPreview} 
+                        alt="Aadhaar preview" 
+                        className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeAadhaarImage}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                      <input
+                        id="aadhaarImage"
+                        name="aadhaarImage"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAadhaarImageChange}
+                        className="hidden"
+                      />
+                      <label htmlFor="aadhaarImage" className="cursor-pointer">
+                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">Click to upload Aadhaar card image</p>
+                        <p className="text-xs text-gray-500 mt-1">Max size: 5MB</p>
+                      </label>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Upload a clear image of your Aadhaar card for verification</p>
+              </div>
+
+              <div>
                 <label htmlFor="password" className="label">
                   Password
                 </label>
@@ -344,24 +426,7 @@ const DealerSignup = () => {
             </p>
           </div>
 
-          {/* Commission Structure */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Commission Structure</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Level 1 (Direct)</span>
-                <span className="text-sm font-medium text-gray-900">10%</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Level 2</span>
-                <span className="text-sm font-medium text-gray-900">5%</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Level 3</span>
-                <span className="text-sm font-medium text-gray-900">2.5%</span>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </>

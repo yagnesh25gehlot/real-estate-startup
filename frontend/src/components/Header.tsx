@@ -1,12 +1,29 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Home, Building2, User, Settings, LogOut, Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { Home, Building2, User, Settings, LogOut, Menu, X, ChevronDown, Info } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import Logo from './Logo'
 
 const Header = () => {
   const { user, logout, isAuthenticated } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const location = useLocation()
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
@@ -27,8 +44,7 @@ const Header = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <Building2 className="h-8 w-8 text-primary-600" />
-            <span className="text-xl font-bold text-gray-900">Property Platform</span>
+            <Logo size="md" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -55,26 +71,56 @@ const Header = () => {
           {/* User Menu / Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">
-                  Welcome, {user?.name || user?.email}
-                </span>
-                <Link
-                  to="/profile"
-                  className="text-sm text-gray-600 hover:text-gray-900"
-                >
-                  Profile
-                </Link>
+              <div className="relative" ref={userMenuRef}>
                 <button
-                  onClick={logout}
-                  className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-900"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center space-x-2 text-sm text-gray-700 hover:text-gray-900 bg-gray-100 rounded-lg px-3 py-2"
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span>Logout</span>
+                  <User className="h-4 w-4" />
+                  <span>{user?.name || user?.email}</span>
+                  <ChevronDown className="h-4 w-4" />
                 </button>
+                
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <Link
+                      to="/profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Profile
+                    </Link>
+                    <Link
+                      to="/about"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Info className="h-4 w-4 mr-2" />
+                      About Us
+                    </Link>
+                    <hr className="my-1" />
+                    <button
+                      onClick={() => {
+                        logout()
+                        setUserMenuOpen(false)
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center space-x-4">
+                <Link
+                  to="/about"
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  About Us
+                </Link>
                 <Link
                   to="/signup"
                   className="btn btn-secondary"
@@ -147,6 +193,14 @@ const Header = () => {
                   >
                     <User className="h-5 w-5" />
                     <span>Profile</span>
+                  </Link>
+                  <Link
+                    to="/about"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center space-x-2 w-full px-3 py-2 text-left text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                  >
+                    <Info className="h-5 w-5" />
+                    <span>About Us</span>
                   </Link>
                   <button
                     onClick={() => {

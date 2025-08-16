@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { api } from '../services/api'
 
@@ -9,6 +8,7 @@ interface User {
   name: string | null
   mobile?: string | null
   aadhaar?: string | null
+  aadhaarImage?: string | null
   profilePic?: string | null
   role: 'USER' | 'DEALER' | 'ADMIN'
   createdAt: string
@@ -16,27 +16,31 @@ interface User {
     id: string
     referralCode: string
     status: string
+    commission?: number
   }
 }
 
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (email: string, name: string, role?: string) => Promise<void>
+  login: (userData: User) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
   updateUser: (userData: User) => void
+  refreshAuth: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const useAuth = () => {
+const useAuth = () => {
   const context = useContext(AuthContext)
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
 }
+
+export { useAuth }
 
 interface AuthProviderProps {
   children: ReactNode
@@ -50,53 +54,107 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(userData)
     localStorage.setItem('user', JSON.stringify(userData))
   }
-  const navigate = useNavigate()
 
   useEffect(() => {
-    // Check for existing token on app load
-    const token = localStorage.getItem('token')
-    if (token) {
-      // You could verify the token here if needed
-      const userData = localStorage.getItem('user')
-      if (userData) {
-        setUser(JSON.parse(userData))
+    console.log('🔍 AuthContext useEffect - checking for existing user')
+    // Check for existing user on app load
+    const userData = localStorage.getItem('user')
+    
+    console.log('🔍 AuthContext useEffect - userData exists:', !!userData)
+    console.log('🔍 AuthContext useEffect - userData value:', userData)
+    
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData)
+        console.log('🔍 AuthContext useEffect - setting user from localStorage:', parsedUser)
+        setUser(parsedUser)
+        console.log('🔍 AuthContext useEffect - user set successfully')
+      } catch (error) {
+        console.error('Error parsing user data:', error)
+        localStorage.removeItem('user')
       }
+    } else {
+      console.log('🔍 AuthContext useEffect - no userData found')
     }
     setLoading(false)
   }, [])
 
-  const login = async (email: string, name: string, role?: string) => {
+  const login = async (userData: User) => {
     try {
-      // Get user data from localStorage (set by login/signup pages)
-      const userData = localStorage.getItem('user')
-      if (!userData) {
-        throw new Error('No user data found')
-      }
-
-      const user = JSON.parse(userData)
-      setUser(user)
+      console.log('🔍 AuthContext.login called with userData:', userData)
+      console.log('🔍 User role:', userData.role)
+      
+      console.log('🔍 localStorage before setUser - user:', !!localStorage.getItem('user'))
+      
+      // Store user data in localStorage
+      localStorage.setItem('user', JSON.stringify(userData))
+      console.log('🔍 User data stored in localStorage')
+      
+      // Set user state
+      setUser(userData)
+      console.log('🔍 User state set successfully')
+      
+      // Show success message
       toast.success('Login successful!')
       
+      console.log('🔍 localStorage after setUser - user:', !!localStorage.getItem('user'))
+      
+      console.log('🔍 About to navigate based on role:', userData.role)
+      
+      // Add a small delay to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       // Redirect based on role
-      if (user.role === 'ADMIN') {
-        navigate('/admin')
+      if (userData.role === 'ADMIN') {
+        console.log('🔍 Navigating to /admin')
+        window.location.href = '/admin'
+      } else if (userData.role === 'DEALER') {
+        console.log('🔍 Navigating to /dashboard')
+        window.location.href = '/dashboard'
       } else {
-        navigate('/dashboard')
+        console.log('🔍 Navigating to /dashboard')
+        window.location.href = '/dashboard'
       }
+      
+      console.log('🔍 Navigation completed')
+      console.log('🔍 localStorage after navigation - user:', !!localStorage.getItem('user'))
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Login failed')
+      console.error('Login error in AuthContext:', error)
+      toast.error(error.message || 'Login failed')
       throw error
     }
   }
 
   const logout = () => {
     // Clear local storage
-    localStorage.removeItem('token')
     localStorage.removeItem('user')
     
     setUser(null)
-    navigate('/')
+    window.location.href = '/'
     toast.success('Logged out successfully')
+  }
+
+  const refreshAuth = () => {
+    console.log('🔍 refreshAuth called')
+    const userData = localStorage.getItem('user')
+    
+    console.log('🔍 refreshAuth - userData exists:', !!userData)
+    
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData)
+        console.log('🔍 refreshAuth - setting user from localStorage:', parsedUser)
+        setUser(parsedUser)
+        console.log('🔍 refreshAuth - user set successfully')
+      } catch (error) {
+        console.error('Error parsing user data in refreshAuth:', error)
+        localStorage.removeItem('user')
+        setUser(null)
+      }
+    } else {
+      console.log('🔍 refreshAuth - no userData found, setting user to null')
+      setUser(null)
+    }
   }
 
   const value: AuthContextType = {
@@ -106,6 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     isAuthenticated: !!user,
     updateUser,
+    refreshAuth,
   }
 
   return (

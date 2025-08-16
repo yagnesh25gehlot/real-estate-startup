@@ -8,7 +8,7 @@ let stripe: Stripe | null = null;
 if (STRIPE_SECRET_KEY) {
   stripe = new Stripe(STRIPE_SECRET_KEY, {
     // Use a valid, stable API version
-    apiVersion: '2024-06-20',
+    apiVersion: '2023-10-16',
   });
 }
 

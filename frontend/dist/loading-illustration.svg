@@ -1,0 +1,65 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="200" fill="#f8fafc"/>
+  
+  <!-- House Construction -->
+  <g transform="translate(50, 80)">
+    <!-- Foundation -->
+    <rect x="0" y="60" width="100" height="20" fill="#64748b"/>
+    
+    <!-- Walls (being built) -->
+    <rect x="10" y="40" width="80" height="20" fill="#3b82f6"/>
+    <rect x="10" y="20" width="80" height="20" fill="#60a5fa"/>
+    <rect x="10" y="0" width="80" height="20" fill="#93c5fd"/>
+    
+    <!-- Roof -->
+    <path d="M0 0L50 -20L100 0" fill="#1d4ed8"/>
+    
+    <!-- Windows -->
+    <rect x="20" y="10" width="15" height="15" fill="white" rx="2"/>
+    <rect x="65" y="10" width="15" height="15" fill="white" rx="2"/>
+    <rect x="20" y="30" width="15" height="15" fill="white" rx="2"/>
+    <rect x="65" y="30" width="15" height="15" fill="white" rx="2"/>
+    
+    <!-- Door -->
+    <rect x="40" y="20" width="20" height="40" fill="white" rx="2"/>
+  </g>
+  
+  <!-- Construction Elements -->
+  <g transform="translate(160, 60)">
+    <!-- Crane -->
+    <rect x="0" y="0" width="4" height="80" fill="#475569"/>
+    <rect x="-20" y="0" width="44" height="4" fill="#475569"/>
+    <circle cx="0" cy="0" r="8" fill="#64748b"/>
+    
+    <!-- Building Materials -->
+    <rect x="10" y="10" width="8" height="8" fill="#3b82f6"/>
+    <rect x="20" y="10" width="8" height="8" fill="#60a5fa"/>
+    <rect x="30" y="10" width="8" height="8" fill="#93c5fd"/>
+  </g>
+  
+  <!-- Progress Dots -->
+  <g transform="translate(100, 180)">
+    <circle cx="0" cy="0" r="4" fill="#3b82f6" opacity="0.3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite" begin="0s"/>
+    </circle>
+    <circle cx="20" cy="0" r="4" fill="#3b82f6" opacity="0.3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite" begin="0.5s"/>
+    </circle>
+    <circle cx="40" cy="0" r="4" fill="#3b82f6" opacity="0.3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite" begin="1s"/>
+    </circle>
+  </g>
+  
+  <!-- Floating Particles -->
+  <circle cx="30" cy="40" r="2" fill="#60a5fa" opacity="0.6">
+    <animate attributeName="cy" values="40;20;40" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="170" cy="80" r="2" fill="#93c5fd" opacity="0.6">
+    <animate attributeName="cy" values="80;60;80" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="40" cy="120" r="2" fill="#bfdbfe" opacity="0.6">
+    <animate attributeName="cy" values="120;100;120" dur="1.8s" repeatCount="indefinite"/>
+  </circle>
+</svg>
+

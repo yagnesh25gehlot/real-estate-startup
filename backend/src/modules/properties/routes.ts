@@ -4,6 +4,7 @@ import { body, query, validationResult } from 'express-validator';
 import { PropertyService } from './service';
 import { authMiddleware, optionalAuth } from '../auth/middleware';
 import { AuthenticatedRequest } from '../auth/types';
+import { S3Uploader } from '../../utils/s3Uploader';
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ router.get('/', optionalAuth, async (req: AuthenticatedRequest, res, next) => {
       maxPrice,
       status,
       dealerId,
+      ownerId,
       page = 1,
       limit = 10,
     } = req.query;
@@ -43,6 +45,7 @@ router.get('/', optionalAuth, async (req: AuthenticatedRequest, res, next) => {
       maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
       status: status as string,
       dealerId: dealerId as string,
+      ownerId: ownerId as string,
     };
 
     const result = await PropertyService.getProperties(
@@ -127,10 +130,28 @@ router.post('/', [
   body('title').trim().isLength({ min: 3, max: 100 }),
   body('description').trim().isLength({ min: 10, max: 1000 }),
   body('type').trim().notEmpty(),
-  body('location').trim().notEmpty(),
-  body('address').optional().trim().isLength({ max: 500 }),
-  body('latitude').optional().isFloat({ min: -90, max: 90 }),
-  body('longitude').optional().isFloat({ min: -180, max: 180 }),
+  body('location').optional().trim().isLength({ max: 100 }),
+  body('address').trim().notEmpty().isLength({ min: 5, max: 500 }),
+  body('latitude').optional().custom((value) => {
+    if (value === '' || value === null || value === undefined) {
+      return true; // Allow empty values
+    }
+    const num = parseFloat(value);
+    if (isNaN(num) || num < -90 || num > 90) {
+      throw new Error('Latitude must be a valid number between -90 and 90');
+    }
+    return true;
+  }),
+  body('longitude').optional().custom((value) => {
+    if (value === '' || value === null || value === undefined) {
+      return true; // Allow empty values
+    }
+    const num = parseFloat(value);
+    if (isNaN(num) || num < -180 || num > 180) {
+      throw new Error('Longitude must be a valid number between -180 and 180');
+    }
+    return true;
+  }),
   body('price').isFloat({ min: 0 }),
   body('dealerId').optional().isUUID(),
 ], async (req: AuthenticatedRequest, res, next) => {
@@ -147,6 +168,13 @@ router.post('/', [
     const { title, description, type, location, address, latitude, longitude, price, dealerId } = req.body;
     const mediaFiles = req.files as Express.Multer.File[];
 
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated',
+      });
+    }
+
     const property = await PropertyService.createProperty(
       {
         title,
@@ -160,7 +188,7 @@ router.post('/', [
         mediaFiles,
         dealerId,
       },
-      req.user!.id
+      req.user.id
     );
 
     res.status(201).json({
@@ -181,8 +209,26 @@ router.put('/:id', [
   body('type').optional().trim().notEmpty(),
   body('location').optional().trim().notEmpty(),
   body('address').optional().trim().isLength({ max: 500 }),
-  body('latitude').optional().isFloat({ min: -90, max: 90 }),
-  body('longitude').optional().isFloat({ min: -180, max: 180 }),
+  body('latitude').optional().custom((value) => {
+    if (value === '' || value === null || value === undefined) {
+      return true; // Allow empty values
+    }
+    const num = parseFloat(value);
+    if (isNaN(num) || num < -90 || num > 90) {
+      throw new Error('Latitude must be a valid number between -90 and 90');
+    }
+    return true;
+  }),
+  body('longitude').optional().custom((value) => {
+    if (value === '' || value === null || value === undefined) {
+      return true; // Allow empty values
+    }
+    const num = parseFloat(value);
+    if (isNaN(num) || num < -180 || num > 180) {
+      throw new Error('Longitude must be a valid number between -180 and 180');
+    }
+    return true;
+  }),
   body('price').optional().isFloat({ min: 0 }),
   body('status').optional().isIn(['FREE', 'BOOKED', 'SOLD']),
 ], async (req: AuthenticatedRequest, res, next) => {
@@ -197,7 +243,7 @@ router.put('/:id', [
     }
 
     const { id } = req.params;
-    const { title, description, type, location, address, latitude, longitude, price, status } = req.body;
+    const { title, description, type, location, address, latitude, longitude, price, status, mediaUrls } = req.body;
     const mediaFiles = req.files as Express.Multer.File[];
 
     const property = await PropertyService.updateProperty(
@@ -212,6 +258,7 @@ router.put('/:id', [
         longitude: longitude ? parseFloat(longitude) : undefined,
         price: price ? parseFloat(price) : undefined,
         status,
+        mediaUrls,
         mediaFiles,
       },
       req.user!.id
@@ -292,6 +339,34 @@ router.get('/locations/list', async (req, res, next) => {
     res.json({
       success: true,
       data: locations,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Upload property image
+router.post('/upload-image', [
+  authMiddleware(['USER', 'DEALER', 'ADMIN']),
+  upload.single('image'),
+], async (req: AuthenticatedRequest, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No image file provided',
+      });
+    }
+
+    // Upload to S3 or local storage
+    const uploadResult = await S3Uploader.uploadFile(req.file, 'properties');
+    
+    res.json({
+      success: true,
+      data: {
+        url: uploadResult.url,
+        key: uploadResult.key,
+      },
     });
   } catch (error) {
     next(error);

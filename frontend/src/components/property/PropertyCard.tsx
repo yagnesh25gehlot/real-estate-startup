@@ -59,10 +59,13 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
     return url
   }
 
-  const imageUrl = property.mediaUrls?.[0] ? getImageUrl(property.mediaUrls[0]) : '/placeholder-property.svg'
+  // Parse mediaUrls from JSON string to array
+  const mediaUrlsArray = property.mediaUrls ? (typeof property.mediaUrls === 'string' ? JSON.parse(property.mediaUrls) : property.mediaUrls) : []
+  const imageUrl = mediaUrlsArray?.[0] ? getImageUrl(mediaUrlsArray[0]) : '/placeholder-property.svg'
   
   // Debug: Log the image URL being used
-  console.log('🔍 PropertyCard - Original URL:', property.mediaUrls?.[0])
+  console.log('🔍 PropertyCard - Original mediaUrls:', property.mediaUrls)
+  console.log('🔍 PropertyCard - Parsed array:', mediaUrlsArray)
   console.log('🔍 PropertyCard - Processed URL:', imageUrl)
 
   return (

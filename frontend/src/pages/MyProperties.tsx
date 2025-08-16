@@ -67,7 +67,20 @@ const MyProperties = () => {
 
   const handlePropertyUpdate = async (updatedProperty: any) => {
     try {
-      await propertiesApi.update(updatedProperty.id, updatedProperty)
+      const formData = new FormData()
+      formData.append('title', updatedProperty.title)
+      formData.append('description', updatedProperty.description)
+      formData.append('type', updatedProperty.type)
+      formData.append('location', updatedProperty.location)
+      formData.append('address', updatedProperty.address)
+      formData.append('price', updatedProperty.price.toString())
+      
+      // Add mediaUrls if it exists
+      if (updatedProperty.mediaUrls) {
+        formData.append('mediaUrls', updatedProperty.mediaUrls)
+      }
+
+      await propertiesApi.update(updatedProperty.id, formData)
       toast.success('Property updated successfully!')
       setShowEditModal(false)
       setEditingProperty(null)

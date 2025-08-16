@@ -4,17 +4,19 @@
   "description": "Property dealing platform backend API",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "seed": "ts-node prisma/seed.ts",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
     "aws-sdk": "^2.1531.0",
+    "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -51,6 +53,9 @@
     "booking",
     "payments"
   ],
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "author": "Property Platform Team",
   "license": "MIT"
 }

@@ -91,11 +91,25 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, property, 
             <h3 className="font-semibold text-gray-900 mb-2">{property.title}</h3>
             <div className="flex items-center text-gray-600 mb-2">
               <Calendar className="h-4 w-4 mr-2" />
-              <span>{startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}</span>
+              <span>{startDate.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+              })} - {endDate.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+              })}</span>
             </div>
             <div className="flex items-center text-gray-600">
               <IndianRupee className="h-4 w-4 mr-1" />
-              <span className="font-semibold">300 booking charges</span>
+              <span className="font-semibold">₹300 booking amount</span>
             </div>
           </div>
 
@@ -181,9 +195,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, property, 
             </button>
           </form>
 
-          <div className="mt-4 text-xs text-gray-500 text-center">
-            <p>Booking will be reviewed by admin before confirmation</p>
-          </div>
+                      <div className="mt-4 text-xs text-gray-500 text-center">
+              <p>This booking reserves the property for 3 days. Admin will review and confirm.</p>
+            </div>
         </div>
       </div>
     </div>

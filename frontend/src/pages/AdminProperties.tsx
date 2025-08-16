@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { propertiesApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
+import PropertyEditModal from '../components/PropertyEditModal'
 import toast from 'react-hot-toast'
 
 interface Property {
@@ -56,6 +57,8 @@ const AdminProperties = () => {
   const [showFilters, setShowFilters] = useState(false)
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
   const navigate = useNavigate()
 
   const propertiesPerPage = 10
@@ -122,6 +125,37 @@ const AdminProperties = () => {
     }
   }
 
+  const handleEditProperty = (property: Property) => {
+    setEditingProperty(property)
+    setShowEditModal(true)
+  }
+
+  const handlePropertyUpdate = async (updatedProperty: any) => {
+    try {
+      const formData = new FormData()
+      formData.append('title', updatedProperty.title)
+      formData.append('description', updatedProperty.description)
+      formData.append('type', updatedProperty.type)
+      formData.append('location', updatedProperty.location)
+      formData.append('address', updatedProperty.address)
+      formData.append('price', updatedProperty.price.toString())
+      
+      // Add mediaUrls if it exists
+      if (updatedProperty.mediaUrls) {
+        formData.append('mediaUrls', updatedProperty.mediaUrls)
+      }
+
+      await propertiesApi.update(updatedProperty.id, formData)
+      toast.success('Property updated successfully')
+      setShowEditModal(false)
+      setEditingProperty(null)
+      fetchProperties()
+    } catch (error: any) {
+      console.error('Failed to update property:', error)
+      toast.error(error.response?.data?.error || 'Failed to update property')
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'FREE':
@@ -165,7 +199,7 @@ const AdminProperties = () => {
   return (
     <>
       <Helmet>
-        <title>Admin Properties - Property Platform</title>
+        <title>Admin Properties - RealtyTopper</title>
       </Helmet>
 
       <div className="max-w-7xl mx-auto p-6">
@@ -326,7 +360,10 @@ const AdminProperties = () => {
                           <div className="flex-shrink-0 h-12 w-12">
                             <img
                               className="h-12 w-12 rounded-lg object-cover"
-                              src={getImageUrl(property.mediaUrls[0])}
+                              src={(() => {
+                                const mediaUrlsArray = property.mediaUrls ? (typeof property.mediaUrls === 'string' ? JSON.parse(property.mediaUrls) : property.mediaUrls) : []
+                                return mediaUrlsArray?.[0] ? getImageUrl(mediaUrlsArray[0]) : '/placeholder-property.svg'
+                              })()}
                               alt={property.title}
                               onError={(e) => {
                                 e.currentTarget.src = '/placeholder-property.svg'
@@ -378,7 +415,7 @@ const AdminProperties = () => {
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => navigate(`/property/${property.id}`)}
+                            onClick={() => handleEditProperty(property)}
                             className="text-green-600 hover:text-green-900 p-1"
                             title="Edit Property"
                           >
@@ -484,6 +521,18 @@ const AdminProperties = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Property Edit Modal */}
+        {showEditModal && editingProperty && (
+          <PropertyEditModal
+            property={editingProperty}
+            onClose={() => {
+              setShowEditModal(false)
+              setEditingProperty(null)
+            }}
+            onSave={handlePropertyUpdate}
+          />
         )}
       </div>
     </>

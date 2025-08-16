@@ -24,7 +24,9 @@ const BecomeDealer = () => {
       toast.success('Dealer application submitted successfully! Awaiting admin approval.')
       navigate('/dashboard')
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Application failed')
+      const errorMessage = error.response?.data?.error || 'Application failed'
+      console.error('Dealer application error:', error.response?.data)
+      toast.error(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
@@ -69,11 +71,61 @@ const BecomeDealer = () => {
                   <strong>Name:</strong> {user.name}<br />
                   <strong>Email:</strong> {user.email}<br />
                   <strong>Current Role:</strong> {user.role}
+                  {user.dealer && (
+                    <>
+                      <br />
+                      <strong>Dealer Status:</strong> {user.dealer.status}
+                      {user.dealer.referralCode && (
+                        <>
+                          <br />
+                          <strong>Your Referral Code:</strong> {user.dealer.referralCode}
+                        </>
+                      )}
+                    </>
+                  )}
                 </p>
               </div>
             </div>
 
+            {/* Show status message if user already has dealer application */}
+            {user.dealer && (
+              <div className="mb-6">
+                {user.dealer.status === 'PENDING' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h3 className="font-medium text-yellow-900 mb-2">Application Status</h3>
+                    <p className="text-sm text-yellow-700">
+                      You already have a pending dealer application. Please wait for admin approval.
+                    </p>
+                  </div>
+                )}
+                {user.dealer.status === 'APPROVED' && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 className="font-medium text-green-900 mb-2">Application Status</h3>
+                    <p className="text-sm text-green-700">
+                      Congratulations! You are already an approved dealer.
+                    </p>
+                  </div>
+                )}
+                {user.dealer.status === 'REJECTED' && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h3 className="font-medium text-red-900 mb-2">Application Status</h3>
+                    <p className="text-sm text-red-700">
+                      Your previous dealer application was rejected. You may apply again.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Disable form if user already has pending application */}
+              {user.dealer && user.dealer.status === 'PENDING' && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <p className="text-sm text-gray-600">
+                    Your application is currently under review. Please wait for admin approval.
+                  </p>
+                </div>
+              )}
               <div>
                 <label htmlFor="referralCode" className="label">
                   Referral Code (Optional)
@@ -98,10 +150,12 @@ const BecomeDealer = () => {
               <div>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || (user.dealer && user.dealer.status === 'PENDING')}
                   className="w-full btn btn-primary disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                  {isSubmitting ? 'Submitting...' : 
+                   (user.dealer && user.dealer.status === 'PENDING') ? 'Application Pending' :
+                   'Submit Application'}
                 </button>
               </div>
             </form>
@@ -129,31 +183,11 @@ const BecomeDealer = () => {
                   <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
                   <span className="text-sm text-gray-700">Professional support team</span>
                 </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
-                  <span className="text-sm text-gray-700">Multi-level commission structure</span>
-                </div>
+
               </div>
             </div>
 
-            {/* Commission Structure */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Commission Structure</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Level 1 (Direct)</span>
-                  <span className="text-sm font-medium text-gray-900">10%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Level 2</span>
-                  <span className="text-sm font-medium text-gray-900">5%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Level 3</span>
-                  <span className="text-sm font-medium text-gray-900">2.5%</span>
-                </div>
-              </div>
-            </div>
+
 
             {/* Process */}
             <div className="bg-white rounded-lg shadow p-6">

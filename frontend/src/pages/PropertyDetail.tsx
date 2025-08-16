@@ -33,7 +33,7 @@ const PropertyDetail = () => {
   const [property, setProperty] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showBookingModal, setShowBookingModal] = useState(false)
-  const [imageLoading, setImageLoading] = useState(true)
+
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -89,12 +89,24 @@ const PropertyDetail = () => {
     return url
   }
 
-  const imageUrl = prop.mediaUrls?.[0] ? getImageUrl(prop.mediaUrls[0]) : '/placeholder-property.svg'
+  // Parse mediaUrls from JSON string to array
+  const mediaUrlsArray = prop.mediaUrls ? (typeof prop.mediaUrls === 'string' ? JSON.parse(prop.mediaUrls) : prop.mediaUrls) : []
+  const imageUrl = mediaUrlsArray?.[0] ? getImageUrl(mediaUrlsArray[0]) : '/placeholder-property.svg'
+  
+
+  
+
+  
+
+  
+
+  
+
 
   return (
     <>
       <Helmet>
-        <title>{prop.title} - Property Platform</title>
+        <title>{prop.title} - RealtyTopper</title>
         <meta name="description" content={prop.description} />
       </Helmet>
 
@@ -114,37 +126,27 @@ const PropertyDetail = () => {
 
         {/* Enhanced Property Images Gallery */}
         <div className="mb-12">
-          {prop.mediaUrls && prop.mediaUrls.length > 0 ? (
+          {mediaUrlsArray && mediaUrlsArray.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
               {/* Main Image */}
               <div className="lg:col-span-2">
-                {imageLoading && (
-                  <div className="w-full h-96 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                      <p className="text-gray-600 font-medium">Loading image...</p>
-                    </div>
-                  </div>
-                )}
                 <img
                   src={imageUrl}
                   alt={prop.title}
-                  className={`w-full h-96 object-cover rounded-2xl shadow-lg ${imageLoading ? 'hidden' : ''}`}
+                  className="w-full h-96 object-cover rounded-2xl shadow-lg"
                   onError={(e) => {
                     console.error('❌ Image failed to load:', imageUrl)
                     e.currentTarget.src = '/placeholder-property.svg'
-                    setImageLoading(false)
                   }}
                   onLoad={() => {
                     console.log('✅ Image loaded successfully:', imageUrl)
-                    setImageLoading(false)
                   }}
                 />
               </div>
               
               {/* Thumbnail Images */}
               <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-                {prop.mediaUrls.slice(1, 5).map((url: string, index: number) => (
+                {mediaUrlsArray.slice(1, 5).map((url: string, index: number) => (
                   <div key={index} className="relative group">
                     <img
                       src={getImageUrl(url)}
@@ -213,15 +215,12 @@ const PropertyDetail = () => {
                   </div>
                 </div>
                 
-                <div className="text-right">
-                  <div className="text-4xl font-bold text-green-600 mb-2">
-                    ₹{prop.price?.toLocaleString() || '0'}
+                                  <div className="text-right">
+                    <div className="text-4xl font-bold text-green-600 mb-2">
+                      ₹{prop.price?.toLocaleString() || '0'}
+                    </div>
+                    <div className="text-gray-600">Total Price</div>
                   </div>
-                  <div className="text-gray-600">Total Price</div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    ₹{(prop.price / 30).toFixed(0)} per day
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -303,11 +302,7 @@ const PropertyDetail = () => {
                     </h4>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Price per day</span>
-                        <span className="font-semibold text-gray-900">₹{(prop.price / 30).toFixed(0)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Minimum booking</span>
+                        <span className="text-gray-600">Book for</span>
                         <span className="font-semibold text-gray-900">3 days</span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -318,7 +313,7 @@ const PropertyDetail = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-semibold text-gray-900">Total amount</span>
                         <span className="text-2xl font-bold text-green-600">
-                          ₹{prop.price}
+                          ₹300
                         </span>
                       </div>
                     </div>
@@ -348,7 +343,7 @@ const PropertyDetail = () => {
                     >
                       <div className="flex items-center justify-center gap-2">
                         <CreditCard className="h-5 w-5" />
-                        Book Now - ₹{prop.price}
+                        Book Now - ₹300
                       </div>
                     </button>
                   ) : (
@@ -394,7 +389,7 @@ const PropertyDetail = () => {
                 <Phone className="h-8 w-8 text-blue-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Call Us</h3>
-              <p className="text-gray-600">+91 8290936884</p>
+              <p className="text-gray-600">+91 7023176884</p>
               <p className="text-sm text-gray-500">Available 24/7</p>
             </div>
             
@@ -403,7 +398,7 @@ const PropertyDetail = () => {
                 <Mail className="h-8 w-8 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Email Support</h3>
-              <p className="text-gray-600">support@propertyplatform.com</p>
+              <p className="text-gray-600">bussiness.startup.work@gmail.com</p>
               <p className="text-sm text-gray-500">Response within 2 hours</p>
             </div>
             
@@ -411,9 +406,9 @@ const PropertyDetail = () => {
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Clock className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Live Chat</h3>
-              <p className="text-gray-600">Chat with our experts</p>
-              <p className="text-sm text-gray-500">Instant responses</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">24/7 Support</h3>
+              <p className="text-gray-600">Round the clock assistance</p>
+              <p className="text-sm text-gray-500">Always available</p>
             </div>
           </div>
         </div>

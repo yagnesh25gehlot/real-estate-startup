@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { createError } from '../../utils/errorHandler';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -285,7 +286,10 @@ export class AdminService {
           password: true,
           mobile: true,
           aadhaar: true,
+          aadhaarImage: true,
+          profilePic: true,
           role: true,
+          status: true,
           createdAt: true,
           dealer: {
             select: {
@@ -534,5 +538,364 @@ export class AdminService {
       console.error('Error building dealer tree:', error);
       throw createError('Failed to build dealer tree', 500);
     }
+  }
+
+  static async blockUser(userId: string): Promise<{ message: string }> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      if (user.role === 'ADMIN') {
+        throw createError('Cannot block admin users', 400);
+      }
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { status: 'BLOCKED' },
+      });
+
+      return {
+        message: 'User blocked successfully',
+      };
+    } catch (error) {
+      throw createError('Failed to block user', 500);
+    }
+  }
+
+  static async unblockUser(userId: string): Promise<{ message: string }> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { status: 'ACTIVE' },
+      });
+
+      return {
+        message: 'User unblocked successfully',
+      };
+    } catch (error) {
+      throw createError('Failed to unblock user', 500);
+    }
+  }
+
+  // Create new user (admin only)
+  static async createUser(data: {
+    email: string;
+    name: string;
+    password?: string;
+    mobile?: string;
+    aadhaar?: string;
+    role: 'USER' | 'DEALER' | 'ADMIN';
+  }): Promise<any> {
+    try {
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: data.email.toLowerCase() },
+      });
+
+      if (existingUser) {
+        throw createError('User with this email already exists', 400);
+      }
+
+      // Hash password if provided
+      let hashedPassword = null;
+      if (data.password) {
+        hashedPassword = await bcrypt.hash(data.password, 12);
+      }
+
+      // Create user
+      const user = await prisma.user.create({
+        data: {
+          email: data.email.toLowerCase(),
+          name: data.name.trim(),
+          password: hashedPassword,
+          mobile: data.mobile?.trim() || null,
+          aadhaar: data.aadhaar?.trim() || null,
+          role: data.role,
+        },
+        include: {
+          dealer: {
+            select: {
+              id: true,
+              referralCode: true,
+              status: true,
+              commission: true,
+            }
+          }
+        }
+      });
+
+      // If creating a dealer, create dealer record
+      if (data.role === 'DEALER') {
+        await prisma.dealer.create({
+          data: {
+            userId: user.id,
+            referralCode: this.generateReferralCode(),
+            status: 'APPROVED', // Auto-approve admin-created dealers
+          },
+        });
+      }
+
+      return user;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('already exists')) {
+        throw error;
+      }
+      throw createError('Failed to create user', 500);
+    }
+  }
+
+  // Update user (admin only)
+  static async updateUser(userId: string, data: {
+    name?: string;
+    mobile?: string;
+    aadhaar?: string;
+    role?: 'USER' | 'DEALER' | 'ADMIN';
+  }): Promise<any> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          dealer: {
+            select: {
+              id: true,
+              referralCode: true,
+              status: true,
+              commission: true,
+            }
+          }
+        }
+      });
+
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      // Update user data
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          name: data.name?.trim() || user.name,
+          mobile: data.mobile?.trim() || user.mobile,
+          aadhaar: data.aadhaar?.trim() || user.aadhaar,
+          role: data.role || user.role,
+        },
+        include: {
+          dealer: {
+            select: {
+              id: true,
+              referralCode: true,
+              status: true,
+              commission: true,
+            }
+          }
+        }
+      });
+
+      // Handle role changes
+      if (data.role && data.role !== user.role) {
+        if (data.role === 'DEALER' && user.role !== 'DEALER') {
+          // Create dealer record if user is becoming a dealer
+          await prisma.dealer.create({
+            data: {
+              userId: user.id,
+              referralCode: this.generateReferralCode(),
+              status: 'APPROVED',
+            },
+          });
+        } else if (user.role === 'DEALER' && data.role !== 'DEALER') {
+          // Remove dealer record if user is no longer a dealer
+          await prisma.dealer.deleteMany({
+            where: { userId: user.id },
+          });
+        }
+      }
+
+      return updatedUser;
+    } catch (error) {
+      throw createError('Failed to update user', 500);
+    }
+  }
+
+  // Update user password (admin only)
+  static async updateUserPassword(userId: string, password: string): Promise<any> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Update user password
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          password: hashedPassword,
+        },
+        include: {
+          dealer: {
+            select: {
+              id: true,
+              referralCode: true,
+              status: true,
+              commission: true,
+            }
+          }
+        }
+      });
+
+      return updatedUser;
+    } catch (error) {
+      throw createError('Failed to update user password', 500);
+    }
+  }
+
+  // Delete user (admin only)
+  static async deleteUser(userId: string): Promise<{ message: string }> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      if (user.role === 'ADMIN') {
+        throw createError('Cannot delete admin users', 400);
+      }
+
+      // Delete related records first
+      await prisma.$transaction([
+        prisma.dealer.deleteMany({
+          where: { userId },
+        }),
+        prisma.booking.deleteMany({
+          where: { userId },
+        }),
+        prisma.user.delete({
+          where: { id: userId },
+        }),
+      ]);
+
+      return {
+        message: 'User deleted successfully',
+      };
+    } catch (error) {
+      throw createError('Failed to delete user', 500);
+    }
+  }
+
+  // Update user profile picture (admin only)
+  static async updateUserProfilePicture(userId: string, profilePicUrl: string): Promise<any> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { profilePic: profilePicUrl },
+        include: {
+          dealer: {
+            select: {
+              id: true,
+              referralCode: true,
+              status: true,
+              commission: true,
+            }
+          }
+        }
+      });
+
+      return updatedUser;
+    } catch (error) {
+      throw createError('Failed to update user profile picture', 500);
+    }
+  }
+
+  // Update user aadhaar image (admin only)
+  static async updateUserAadhaarImage(userId: string, aadhaarImageUrl: string): Promise<any> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { aadhaarImage: aadhaarImageUrl },
+        include: {
+          dealer: {
+            select: {
+              id: true,
+              referralCode: true,
+              status: true,
+              commission: true,
+            }
+          }
+        }
+      });
+
+      return updatedUser;
+    } catch (error) {
+      throw createError('Failed to update user aadhaar image', 500);
+    }
+  }
+
+  // Get user by ID (admin only)
+  static async getUserById(userId: string): Promise<any> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          dealer: {
+            select: {
+              id: true,
+              referralCode: true,
+              status: true,
+              commission: true,
+            }
+          }
+        }
+      });
+
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      return user;
+    } catch (error) {
+      throw createError('Failed to get user', 500);
+    }
+  }
+
+  // Generate referral code for dealers
+  private static generateReferralCode(): string {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
   }
 } 
