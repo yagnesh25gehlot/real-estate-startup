@@ -34,8 +34,10 @@ WORKDIR /app/backend
 # Generate Prisma client before building
 RUN npx prisma generate
 RUN npm run build
-# Verify the build output exists
-RUN ls -la dist/
+# Debug: Check what was built
+RUN pwd && ls -la
+RUN ls -la dist/ || echo "dist directory not found"
+RUN find . -name "*.js" -type f | head -10
 
 # Production image
 FROM base AS runner
@@ -58,6 +60,10 @@ COPY --chown=nextjs:nodejs package*.json ./
 # Create uploads directory
 RUN mkdir -p /app/backend/uploads/properties /app/backend/uploads/profiles /app/backend/uploads/payments /app/backend/uploads/aadhaar
 RUN chown -R nextjs:nodejs /app/backend/uploads
+
+# Debug: Check what was copied
+RUN ls -la backend/ || echo "backend directory not found"
+RUN ls -la backend/dist/ || echo "backend/dist directory not found"
 
 # Switch to non-root user
 USER nextjs
