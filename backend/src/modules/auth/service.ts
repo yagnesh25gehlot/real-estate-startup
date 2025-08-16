@@ -143,7 +143,8 @@ export class AuthService {
         },
       });
 
-      // Send notification to admin about new user signup
+      // Send notification to admin about new user signup (temporarily disabled)
+      /*
       try {
         await NotificationService.notifyUserSignup(newUser);
       } catch (notificationError) {
@@ -152,6 +153,7 @@ export class AuthService {
           console.error('Failed to send user signup notification:', notificationError);
         }
       }
+      */
 
       // Return user data only (no token)
       return {
@@ -163,7 +165,7 @@ export class AuthService {
           aadhaar: newUser.aadhaar,
           aadhaarImage: newUser.aadhaarImage,
           profilePic: newUser.profilePic,
-          role: newUser.role,
+          role: newUser.role as Role,
           createdAt: newUser.createdAt,
           dealer: null, // New users don't have dealer data
         }
