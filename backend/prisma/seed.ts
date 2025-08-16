@@ -25,7 +25,7 @@ async function main() {
   console.log('✅ Commission configuration created');
 
   // Create admin user with secure password
-  const adminEmail = 'bussinessstatupwork@gmail.com';
+  const adminEmail = 'bussiness.startup.work@gmail.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'Nikku@25';
   const adminName = 'Business Admin';
 
