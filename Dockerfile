@@ -5,6 +5,9 @@ FROM node:18-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
+# Install required SSL libraries for Prisma
+RUN apk add --no-cache openssl
+
 # Copy package files
 COPY package*.json ./
 COPY backend/package*.json ./backend/
@@ -27,6 +30,8 @@ RUN npm run build
 # Build the backend
 FROM base AS backend-builder
 WORKDIR /app
+# Install required SSL libraries for Prisma
+RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/backend/node_modules ./backend/node_modules
 COPY backend/ ./backend/
@@ -42,6 +47,9 @@ RUN find . -name "*.js" -type f | head -10
 # Production image
 FROM base AS runner
 WORKDIR /app
+
+# Install required SSL libraries for Prisma
+RUN apk add --no-cache openssl
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
