@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { api } from '../services/api'
 
@@ -55,7 +54,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(userData)
     localStorage.setItem('user', JSON.stringify(userData))
   }
-  const navigate = useNavigate()
 
   useEffect(() => {
     console.log('🔍 AuthContext useEffect - checking for existing user')
@@ -109,13 +107,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Redirect based on role
       if (userData.role === 'ADMIN') {
         console.log('🔍 Navigating to /admin')
-        navigate('/admin', { replace: true })
+        window.location.href = '/admin'
       } else if (userData.role === 'DEALER') {
         console.log('🔍 Navigating to /dashboard')
-        navigate('/dashboard', { replace: true })
+        window.location.href = '/dashboard'
       } else {
         console.log('🔍 Navigating to /dashboard')
-        navigate('/dashboard', { replace: true })
+        window.location.href = '/dashboard'
       }
       
       console.log('🔍 Navigation completed')
@@ -132,7 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('user')
     
     setUser(null)
-    navigate('/')
+    window.location.href = '/'
     toast.success('Logged out successfully')
   }
 
