@@ -34,6 +34,8 @@ WORKDIR /app/backend
 # Generate Prisma client before building
 RUN npx prisma generate
 RUN npm run build
+# Verify the build output exists
+RUN ls -la dist/
 
 # Production image
 FROM base AS runner
