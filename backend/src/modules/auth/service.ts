@@ -13,7 +13,7 @@ export class AuthService {
     const payload = {
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role as Role,
       iat: Math.floor(Date.now() / 1000),
     };
     
@@ -561,13 +561,12 @@ export class AuthService {
       return {
         user: {
           id: updatedUser.id,
-          name: updatedUser.name,
           email: updatedUser.email,
           mobile: updatedUser.mobile,
           aadhaar: updatedUser.aadhaar,
           aadhaarImage: updatedUser.aadhaarImage,
           profilePic: updatedUser.profilePic,
-          role: updatedUser.role,
+          role: updatedUser.role as Role,
           createdAt: updatedUser.createdAt,
           dealer: dealerInfo,
         },
@@ -637,7 +636,7 @@ export class AuthService {
         aadhaar: user.aadhaar,
         aadhaarImage: user.aadhaarImage,
         profilePic: user.profilePic,
-        role: user.role,
+        role: user.role as Role,
         status: user.status,
         createdAt: user.createdAt,
         dealer: user.dealer,
