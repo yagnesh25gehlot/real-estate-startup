@@ -336,7 +336,7 @@ const Profile = () => {
                     <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
                       {user.profilePic ? (
                         <img 
-                          src={user.profilePic.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${user.profilePic}` : user.profilePic} 
+                          src={user.profilePic.startsWith('/uploads/') ? `${import.meta.env.PROD ? 'https://realtytopper.com' : (import.meta.env.VITE_API_URL || 'http://localhost:3001')}${user.profilePic}` : user.profilePic} 
                           alt="Profile" 
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -415,7 +415,7 @@ const Profile = () => {
                         <div className="space-y-2">
                           <div className="relative inline-block">
                             <img 
-                              src={user.aadhaarImage.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${user.aadhaarImage}` : user.aadhaarImage} 
+                              src={user.aadhaarImage.startsWith('/uploads/') ? `${import.meta.env.PROD ? 'https://realtytopper.com' : (import.meta.env.VITE_API_URL || 'http://localhost:3001')}${user.aadhaarImage}` : user.aadhaarImage} 
                               alt="Aadhaar Card" 
                               className="h-24 w-32 object-cover rounded border shadow-sm"
                               onError={(e) => {
@@ -439,7 +439,7 @@ const Profile = () => {
                             <button
                               onClick={() => {
                                 const img = document.createElement('img')
-                                img.src = user.aadhaarImage?.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${user.aadhaarImage}` : user.aadhaarImage || ''
+                                img.src = user.aadhaarImage?.startsWith('/uploads/') ? `${import.meta.env.PROD ? 'https://realtytopper.com' : (import.meta.env.VITE_API_URL || 'http://localhost:3001')}${user.aadhaarImage}` : user.aadhaarImage || ''
                                 img.style.maxWidth = '100%'
                                 img.style.maxHeight = '80vh'
                                 img.style.objectFit = 'contain'
@@ -687,7 +687,7 @@ const Profile = () => {
                     {user.aadhaarImage && (
                       <div className="flex items-center space-x-3">
                         <img 
-                          src={user.aadhaarImage.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${user.aadhaarImage}` : user.aadhaarImage} 
+                          src={user.aadhaarImage.startsWith('/uploads/') ? `${import.meta.env.PROD ? 'https://realtytopper.com' : (import.meta.env.VITE_API_URL || 'http://localhost:3001')}${user.aadhaarImage}` : user.aadhaarImage} 
                           alt="Current Aadhaar" 
                           className="h-16 w-20 object-cover rounded border"
                           onError={(e) => {

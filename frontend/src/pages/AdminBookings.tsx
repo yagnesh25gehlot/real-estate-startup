@@ -816,7 +816,7 @@ Do you want to proceed?`;
                       <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                         <p className="text-xs text-gray-600 mb-2">Payment proof uploaded by user:</p>
                         <a 
-                          href={`http://localhost:3001${selectedBooking.paymentProof}`}
+                                                      href={import.meta.env.PROD ? `https://realtytopper.com${selectedBooking.paymentProof}` : `http://localhost:3001${selectedBooking.paymentProof}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 underline font-medium"

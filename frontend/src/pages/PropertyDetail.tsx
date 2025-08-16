@@ -83,7 +83,10 @@ const PropertyDetail = () => {
     if (!url) return '/placeholder-property.svg'
     if (url.includes('example.com/mock-upload')) return '/placeholder-property.svg'
     if (url.startsWith('/uploads/')) {
-      const fullUrl = `http://localhost:3001${url}`
+      const baseUrl = import.meta.env.PROD 
+        ? 'https://realtytopper.com' 
+        : 'http://localhost:3001'
+      const fullUrl = `${baseUrl}${url}`
       return encodeURI(fullUrl)
     }
     return url

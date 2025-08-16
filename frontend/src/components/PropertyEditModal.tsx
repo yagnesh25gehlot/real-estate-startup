@@ -174,7 +174,10 @@ const PropertyEditModal: React.FC<PropertyEditModalProps> = ({ property, onClose
   const getImageUrl = (url: string) => {
     if (!url) return '/placeholder-property.svg'
     if (url.startsWith('/uploads/')) {
-      return `http://localhost:3001${url}`
+      const baseUrl = import.meta.env.PROD 
+        ? 'https://realtytopper.com' 
+        : 'http://localhost:3001'
+      return `${baseUrl}${url}`
     }
     return url
   }

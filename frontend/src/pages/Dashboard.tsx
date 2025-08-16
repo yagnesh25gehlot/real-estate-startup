@@ -306,7 +306,7 @@ const Dashboard = () => {
                         <img
                           src={(() => {
                             const mediaUrlsArray = booking.property.mediaUrls ? (typeof booking.property.mediaUrls === 'string' ? JSON.parse(booking.property.mediaUrls) : booking.property.mediaUrls) : []
-                            return mediaUrlsArray?.[0] ? `http://localhost:3001${mediaUrlsArray[0]}` : '/placeholder-property.svg'
+                            return mediaUrlsArray?.[0] ? (import.meta.env.PROD ? `https://realtytopper.com${mediaUrlsArray[0]}` : `http://localhost:3001${mediaUrlsArray[0]}`) : '/placeholder-property.svg'
                           })()}
                           alt={booking.property.title}
                           className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
@@ -380,7 +380,7 @@ const Dashboard = () => {
                         <div className="mt-3 pt-3 border-t border-gray-100">
                           <p className="text-xs text-gray-500 mb-1">Payment Proof:</p>
                           <a 
-                            href={`http://localhost:3001${booking.paymentProof}`}
+                            href={import.meta.env.PROD ? `https://realtytopper.com${booking.paymentProof}` : `http://localhost:3001${booking.paymentProof}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-blue-600 hover:text-blue-800 underline"
@@ -460,7 +460,7 @@ const Dashboard = () => {
                         <img
                           src={(() => {
                             const mediaUrlsArray = property.mediaUrls ? (typeof property.mediaUrls === 'string' ? JSON.parse(property.mediaUrls) : property.mediaUrls) : []
-                            return mediaUrlsArray?.[0] ? `http://localhost:3001${mediaUrlsArray[0]}` : '/placeholder-property.svg'
+                            return mediaUrlsArray?.[0] ? (import.meta.env.PROD ? `https://realtytopper.com${mediaUrlsArray[0]}` : `http://localhost:3001${mediaUrlsArray[0]}`) : '/placeholder-property.svg'
                           })()}
                           alt={property.title}
                           className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
