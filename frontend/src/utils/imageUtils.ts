@@ -1,8 +1,8 @@
+import { config } from '../config/environment'
+
 // Utility function to get the correct base URL for images
 export const getImageBaseUrl = () => {
-  return import.meta.env.PROD 
-    ? 'https://realtytopper.com' 
-    : (import.meta.env.VITE_API_URL || 'http://localhost:3001')
+  return config.getImageBaseUrl()
 }
 
 // Utility function to get the correct image URL

@@ -188,8 +188,8 @@ const AdminProperties = () => {
     if (!url) return '/placeholder-property.svg'
     if (url.startsWith('/uploads/')) {
       const baseUrl = import.meta.env.PROD 
-        ? 'https://realtytopper.com' 
-        : 'http://localhost:3001'
+        ? window.location.origin 
+        : (import.meta.env.VITE_API_URL || 'http://localhost:3001')
       return `${baseUrl}${url}`
     }
     return url
