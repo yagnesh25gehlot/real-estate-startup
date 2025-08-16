@@ -28,6 +28,7 @@ export interface UpdatePropertyData {
   longitude?: number;
   price?: number;
   status?: string;
+  mediaUrls?: string;
   mediaFiles?: Express.Multer.File[];
 }
 

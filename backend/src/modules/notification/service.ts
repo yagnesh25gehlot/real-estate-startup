@@ -3,30 +3,26 @@ import { createError } from '../../utils/errorHandler';
 
 const prisma = new PrismaClient();
 
-export interface NotificationData {
-  type: 'PROPERTY_ADDED' | 'PROPERTY_UPDATED' | 'USER_SIGNUP' | 'BOOKING_CREATED' | 'DEALER_REQUEST';
-  title: string;
-  message: string;
-  data?: any;
-  adminOnly?: boolean;
-}
-
 export class NotificationService {
-  // Create a notification
-  static async createNotification(data: NotificationData): Promise<any> {
+  // Create a new notification
+  static async createNotification(data: {
+    userId: string;
+    type: string;
+    title: string;
+    message: string;
+  }): Promise<any> {
     try {
       const notification = await prisma.notification.create({
         data: {
+          userId: data.userId,
           type: data.type,
           title: data.title,
           message: data.message,
-          data: data.data ? JSON.stringify(data.data) : null,
-          adminOnly: data.adminOnly || false,
         },
       });
 
       // Log to console for immediate visibility
-      console.log('🔔 ADMIN NOTIFICATION:', {
+      console.log('🔔 NOTIFICATION:', {
         type: data.type,
         title: data.title,
         message: data.message,
@@ -46,7 +42,7 @@ export class NotificationService {
       const skip = (page - 1) * limit;
 
       // Build where clause
-      const where: any = { adminOnly: true };
+      const where: any = {};
 
       // Type filter
       if (filters.type) {
@@ -125,26 +121,68 @@ export class NotificationService {
     }
   }
 
-  // Mark all notifications as read
-  static async markAllAsRead(): Promise<any> {
+  // Get notifications for a specific user
+  static async getUserNotifications(userId: string, page: number = 1, limit: number = 20): Promise<any> {
     try {
-      await prisma.notification.updateMany({
-        where: { read: false, adminOnly: true },
+      const skip = (page - 1) * limit;
+
+      const [notifications, total] = await Promise.all([
+        prisma.notification.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        prisma.notification.count({ where: { userId } }),
+      ]);
+
+      return {
+        notifications,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      console.error('Failed to fetch user notifications:', error);
+      throw createError('Failed to fetch notifications', 500);
+    }
+  }
+
+  // Delete a notification
+  static async deleteNotification(notificationId: string): Promise<any> {
+    try {
+      const notification = await prisma.notification.delete({
+        where: { id: notificationId },
+      });
+
+      return notification;
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+      throw createError('Failed to delete notification', 500);
+    }
+  }
+
+  // Mark all notifications as read for a user
+  static async markAllAsRead(userId: string): Promise<any> {
+    try {
+      const result = await prisma.notification.updateMany({
+        where: { userId, read: false },
         data: { read: true },
       });
 
-      return { message: 'All notifications marked as read' };
+      return result;
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
       throw createError('Failed to mark all notifications as read', 500);
     }
   }
 
-  // Get unread notification count
-  static async getUnreadCount(): Promise<number> {
+  // Get unread notification count for a user
+  static async getUnreadCount(userId: string): Promise<number> {
     try {
       const count = await prisma.notification.count({
-        where: { read: false, adminOnly: true },
+        where: { userId, read: false },
       });
 
       return count;
@@ -152,96 +190,5 @@ export class NotificationService {
       console.error('Failed to get unread count:', error);
       return 0;
     }
-  }
-
-  // Delete old notifications (older than 30 days)
-  static async cleanupOldNotifications(): Promise<any> {
-    try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const deleted = await prisma.notification.deleteMany({
-        where: {
-          createdAt: { lt: thirtyDaysAgo },
-          read: true,
-        },
-      });
-
-      console.log(`🧹 Cleaned up ${deleted.count} old notifications`);
-      return { deletedCount: deleted.count };
-    } catch (error) {
-      console.error('Failed to cleanup old notifications:', error);
-      throw createError('Failed to cleanup old notifications', 500);
-    }
-  }
-
-  // Property added notification
-  static async notifyPropertyAdded(property: any, user: any): Promise<void> {
-    await this.createNotification({
-      type: 'PROPERTY_ADDED',
-      title: 'New Property Listed',
-      message: `User ${user.name} (${user.email}) has listed a new property: "${property.title}"`,
-      data: {
-        propertyId: property.id,
-        propertyTitle: property.title,
-        propertyPrice: property.price,
-        propertyLocation: property.location,
-        userId: user.id,
-        userName: user.name,
-        userEmail: user.email,
-      },
-      adminOnly: true,
-    });
-  }
-
-  // Property updated notification
-  static async notifyPropertyUpdated(property: any, user: any, changes: any): Promise<void> {
-    await this.createNotification({
-      type: 'PROPERTY_UPDATED',
-      title: 'Property Updated',
-      message: `User ${user.name} (${user.email}) has updated property: "${property.title}"`,
-      data: {
-        propertyId: property.id,
-        propertyTitle: property.title,
-        changes,
-        userId: user.id,
-        userName: user.name,
-        userEmail: user.email,
-      },
-      adminOnly: true,
-    });
-  }
-
-  // User signup notification
-  static async notifyUserSignup(user: any): Promise<void> {
-    await this.createNotification({
-      type: 'USER_SIGNUP',
-      title: 'New User Registration',
-      message: `New user registered: ${user.name} (${user.email})`,
-      data: {
-        userId: user.id,
-        userName: user.name,
-        userEmail: user.email,
-        userRole: user.role,
-      },
-      adminOnly: true,
-    });
-  }
-
-  // Dealer request notification
-  static async notifyDealerRequest(dealer: any, user: any): Promise<void> {
-    await this.createNotification({
-      type: 'DEALER_REQUEST',
-      title: 'New Dealer Request',
-      message: `User ${user.name} (${user.email}) has requested to become a dealer`,
-      data: {
-        dealerId: dealer.id,
-        userId: user.id,
-        userName: user.name,
-        userEmail: user.email,
-        referralCode: dealer.referralCode,
-      },
-      adminOnly: true,
-    });
   }
 }

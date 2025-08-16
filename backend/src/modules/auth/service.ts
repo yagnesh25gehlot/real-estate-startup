@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { PrismaClient, User, Role } from '@prisma/client';
-import { GoogleAuthPayload, LoginResponse, DealerSignupRequest, LoginRequest } from './types';
+import { PrismaClient, User } from '@prisma/client';
+import { GoogleAuthPayload, LoginResponse, DealerSignupRequest, LoginRequest, Role } from './types';
 import { createError } from '../../utils/errorHandler';
 import { sendDealerApprovalEmail } from '../../mail/notifications';
 import { NotificationService } from '../notification/service';
