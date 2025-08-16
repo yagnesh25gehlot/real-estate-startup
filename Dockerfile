@@ -43,6 +43,7 @@ RUN npm run build
 RUN pwd && ls -la
 RUN ls -la dist/ || echo "dist directory not found"
 RUN find . -name "*.js" -type f | head -10
+RUN ls -la node_modules/.prisma/ || echo "prisma client not found"
 
 # Production image
 FROM base AS runner
@@ -60,6 +61,11 @@ COPY --from=frontend-builder --chown=nextjs:nodejs /app/frontend/dist ./frontend
 COPY --from=backend-builder --chown=nextjs:nodejs /app/backend/dist ./backend/dist
 COPY --from=backend-builder --chown=nextjs:nodejs /app/backend/node_modules ./backend/node_modules
 COPY --from=backend-builder --chown=nextjs:nodejs /app/backend/prisma ./backend/prisma
+
+# Regenerate Prisma client in production
+WORKDIR /app/backend
+RUN npx prisma generate
+WORKDIR /app
 
 # Copy necessary files
 COPY --chown=nextjs:nodejs backend/package*.json ./backend/
