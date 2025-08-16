@@ -37,7 +37,7 @@ app.use(helmet({
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https:", "data:", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'", "https://real-estate-startup-production.up.railway.app"],
+      connectSrc: ["'self'", "https://real-estate-startup-production.up.railway.app", "https://realtytopper.com", "https://www.realtytopper.com"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
@@ -57,7 +57,11 @@ app.use(helmet({
 
 // Secure CORS configuration
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? [process.env.FRONTEND_URL || 'https://real-estate-startup-production.up.railway.app'].filter(Boolean)
+  ? [
+      process.env.FRONTEND_URL || 'https://real-estate-startup-production.up.railway.app',
+      'https://realtytopper.com',
+      'https://www.realtytopper.com'
+    ].filter(Boolean)
   : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174', 'http://127.0.0.1:5175', 'http://127.0.0.1:5176', null];
 
 app.use(cors({
