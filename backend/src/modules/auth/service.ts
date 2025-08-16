@@ -310,7 +310,7 @@ export class AuthService {
           aadhaar: user.aadhaar,
           aadhaarImage: user.aadhaarImage,
           profilePic: user.profilePic,
-          role: user.role,
+          role: user.role as Role,
           createdAt: user.createdAt,
           dealer: user.dealer ? {
             id: user.dealer.id,
