@@ -78,7 +78,8 @@ export class PropertyService {
         },
       });
 
-      // Send notification to admin
+      // Send notification to admin (temporarily disabled)
+      /*
       try {
         const owner = await prisma.user.findUnique({ where: { id: property.ownerId } });
         if (owner) {
@@ -88,6 +89,7 @@ export class PropertyService {
         console.error('Failed to send property added notification:', notificationError);
         // Don't fail the property creation if notification fails
       }
+      */
 
       return property;
     } catch (error) {
