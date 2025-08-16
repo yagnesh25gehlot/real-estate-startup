@@ -166,7 +166,13 @@ export class PropertyService {
         },
       };
     } catch (error) {
-      throw createError('Failed to fetch properties', 500);
+      console.error('Error fetching properties:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        meta: error.meta
+      });
+      throw createError(`Failed to fetch properties: ${error.message}`, 500);
     }
   }
 
@@ -462,7 +468,13 @@ export class PropertyService {
 
       return types.map(t => t.type);
     } catch (error) {
-      throw createError('Failed to fetch property types', 500);
+      console.error('Error fetching property types:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        meta: error.meta
+      });
+      throw createError(`Failed to fetch property types: ${error.message}`, 500);
     }
   }
 
@@ -478,7 +490,13 @@ export class PropertyService {
 
       return locations.map(l => l.location).filter((loc): loc is string => loc !== null);
     } catch (error) {
-      throw createError('Failed to fetch locations', 500);
+      console.error('Error fetching locations:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        meta: error.meta
+      });
+      throw createError(`Failed to fetch locations: ${error.message}`, 500);
     }
   }
 } 
