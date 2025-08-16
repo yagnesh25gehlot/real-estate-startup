@@ -25,6 +25,9 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
+// Trust Railway proxy
+app.set('trust proxy', 1);
+
 // Enhanced security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -90,6 +93,10 @@ const limiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: false,
   skipFailedRequests: false,
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For header if available (Railway proxy)
+    return req.headers['x-forwarded-for'] as string || req.ip;
+  },
 });
 
 // Apply rate limiting to all routes
