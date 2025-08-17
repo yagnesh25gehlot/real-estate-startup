@@ -100,11 +100,113 @@ const Home = () => {
     setCurrentPage(1)
   }
 
+  // Debounced filter change for text inputs
+  const handleFilterChangeDebounced = (newFilters: any) => {
+    const timeoutId = setTimeout(() => {
+      setFilters(newFilters)
+      setCurrentPage(1)
+    }, 500) // 500ms delay
+
+    return () => clearTimeout(timeoutId)
+  }
+
   return (
     <>
       <Helmet>
-        <title>RealtyTopper - Find Your Perfect Property</title>
-        <meta name="description" content="Discover amazing properties for sale and rent. Browse through our extensive collection of houses, apartments, and commercial properties." />
+        <title>RealtyTopper - Find Your Dream Property | Houses, Apartments, Commercial Properties</title>
+        <meta name="description" content="Discover the best properties across India. Browse houses, apartments, and commercial properties for sale and rent. Verified listings with secure booking. Contact us at +91 8112279602." />
+        <meta name="keywords" content="real estate, property for sale, houses for sale, apartments for rent, commercial property, property search, real estate India, property listing, buy property, rent property" />
+        <meta name="author" content="RealtyTopper" />
+        <meta name="robots" content="index, follow" />
+        <meta name="language" content="English" />
+        <meta name="revisit-after" content="7 days" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://realtytopper.com/" />
+        <meta property="og:title" content="RealtyTopper - Find Your Dream Property" />
+        <meta property="og:description" content="Discover the best properties across India. Browse houses, apartments, and commercial properties for sale and rent." />
+        <meta property="og:image" content="https://realtytopper.com/og-image.jpg" />
+        <meta property="og:site_name" content="RealtyTopper" />
+        
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://realtytopper.com/" />
+        <meta property="twitter:title" content="RealtyTopper - Find Your Dream Property" />
+        <meta property="twitter:description" content="Discover the best properties across India. Browse houses, apartments, and commercial properties for sale and rent." />
+        <meta property="twitter:image" content="https://realtytopper.com/twitter-image.jpg" />
+        
+        {/* Additional SEO Meta Tags */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#2563eb" />
+        <meta name="msapplication-TileColor" content="#2563eb" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="RealtyTopper" />
+        
+        {/* Canonical URL */}
+        <link rel="canonical" href="https://realtytopper.com/" />
+        
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "RealEstateAgent",
+            "name": "RealtyTopper",
+            "description": "Your trusted partner in real estate. We connect you with the best properties across multiple cities with verified listings and secure transactions.",
+            "url": "https://realtytopper.com",
+            "logo": "https://realtytopper.com/logo.png",
+            "image": "https://realtytopper.com/hero-image.jpg",
+            "telephone": "+918112279602",
+            "email": "bussiness.startup.work@gmail.com",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Near Sadar Police Station",
+              "addressLocality": "Bundi",
+              "addressRegion": "Rajasthan",
+              "postalCode": "323001",
+              "addressCountry": "IN"
+            },
+            "sameAs": [
+              "https://www.facebook.com/profile.php?id=61579263880439",
+              "https://www.instagram.com/realtytopper/"
+            ],
+            "areaServed": {
+              "@type": "Country",
+              "name": "India"
+            },
+            "serviceType": "Real Estate Services",
+            "priceRange": "₹₹"
+          })}
+        </script>
+        
+        {/* Local Business Schema */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            "name": "VRUSKARAMA REAL ESTATE PRIVATE LIMITED",
+            "description": "Professional real estate services in Bundi, Rajasthan",
+            "url": "https://realtytopper.com",
+            "telephone": "+918112279602",
+            "email": "bussiness.startup.work@gmail.com",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "C/O Rang Raj Kanwar, Near Sadar Police Station",
+              "addressLocality": "Bundi",
+              "addressRegion": "Rajasthan",
+              "postalCode": "323001",
+              "addressCountry": "IN"
+            },
+            "geo": {
+              "@type": "GeoCoordinates",
+              "latitude": "25.4419",
+              "longitude": "75.6404"
+            },
+            "openingHours": "Mo-Su 09:00-18:00",
+            "priceRange": "₹₹"
+          })}
+        </script>
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

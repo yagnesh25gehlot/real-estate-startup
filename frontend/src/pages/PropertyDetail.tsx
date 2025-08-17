@@ -109,8 +109,112 @@ const PropertyDetail = () => {
   return (
     <>
       <Helmet>
-        <title>{prop.title} - RealtyTopper</title>
-        <meta name="description" content={prop.description} />
+        <title>{prop ? `${prop.title} - ${prop.location} | RealtyTopper` : 'Property Details - RealtyTopper'}</title>
+        <meta name="description" content={prop ? `${prop.title} for sale in ${prop.location}. ${prop.description?.substring(0, 150)}... Price: ₹${prop.price?.toLocaleString()}. Contact RealtyTopper at +91 8112279602.` : 'Property details and information on RealtyTopper'} />
+        <meta name="keywords" content={`${prop?.type || 'property'}, ${prop?.location || 'real estate'}, property for sale, ${prop?.type || 'property'} in ${prop?.location || 'India'}, real estate ${prop?.location || 'India'}`} />
+        <meta name="author" content="RealtyTopper" />
+        <meta name="robots" content="index, follow" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={`https://realtytopper.com/property/${prop?.id}`} />
+        <meta property="og:title" content={prop ? `${prop.title} - ${prop.location}` : 'Property Details'} />
+        <meta property="og:description" content={prop ? `${prop.title} for sale in ${prop.location}. Price: ₹${prop.price?.toLocaleString()}.` : 'Property details on RealtyTopper'} />
+        <meta property="og:image" content={prop?.mediaUrls ? (() => {
+          const mediaUrlsArray = typeof prop.mediaUrls === 'string' ? JSON.parse(prop.mediaUrls) : prop.mediaUrls
+          return mediaUrlsArray?.[0] ? `https://realtytopper.com${mediaUrlsArray[0]}` : 'https://realtytopper.com/placeholder-property.jpg'
+        })() : 'https://realtytopper.com/placeholder-property.jpg'} />
+        <meta property="og:site_name" content="RealtyTopper" />
+        
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={`https://realtytopper.com/property/${prop?.id}`} />
+        <meta property="twitter:title" content={prop ? `${prop.title} - ${prop.location}` : 'Property Details'} />
+        <meta property="twitter:description" content={prop ? `${prop.title} for sale in ${prop.location}. Price: ₹${prop.price?.toLocaleString()}.` : 'Property details on RealtyTopper'} />
+        <meta property="twitter:image" content={prop?.mediaUrls ? (() => {
+          const mediaUrlsArray = typeof prop.mediaUrls === 'string' ? JSON.parse(prop.mediaUrls) : prop.mediaUrls
+          return mediaUrlsArray?.[0] ? `https://realtytopper.com${mediaUrlsArray[0]}` : 'https://realtytopper.com/placeholder-property.jpg'
+        })() : 'https://realtytopper.com/placeholder-property.jpg'} />
+        
+        {/* Canonical URL */}
+        <link rel="canonical" href={`https://realtytopper.com/property/${prop?.id}`} />
+        
+        {/* Structured Data for Property */}
+        {prop && (
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Product",
+              "name": prop.title,
+              "description": prop.description,
+              "image": (() => {
+                const mediaUrlsArray = typeof prop.mediaUrls === 'string' ? JSON.parse(prop.mediaUrls) : prop.mediaUrls
+                return mediaUrlsArray?.[0] ? `https://realtytopper.com${mediaUrlsArray[0]}` : 'https://realtytopper.com/placeholder-property.jpg'
+              })(),
+              "offers": {
+                "@type": "Offer",
+                "price": prop.price,
+                "priceCurrency": "INR",
+                "availability": prop.status === 'FREE' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                "seller": {
+                  "@type": "RealEstateAgent",
+                  "name": "RealtyTopper",
+                  "url": "https://realtytopper.com",
+                  "telephone": "+918112279602"
+                }
+              },
+              "category": prop.type,
+              "brand": {
+                "@type": "Brand",
+                "name": "RealtyTopper"
+              },
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.5",
+                "reviewCount": "50"
+              }
+            })}
+          </script>
+        )}
+        
+        {/* Real Estate Listing Schema */}
+        {prop && (
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "RealEstateListing",
+              "name": prop.title,
+              "description": prop.description,
+              "image": (() => {
+                const mediaUrlsArray = typeof prop.mediaUrls === 'string' ? JSON.parse(prop.mediaUrls) : prop.mediaUrls
+                return mediaUrlsArray?.[0] ? `https://realtytopper.com${mediaUrlsArray[0]}` : 'https://realtytopper.com/placeholder-property.jpg'
+              })(),
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": prop.location,
+                "addressCountry": "IN"
+              },
+              "floorSize": {
+                "@type": "QuantitativeValue",
+                "value": "1000",
+                "unitCode": "MTK"
+              },
+              "numberOfRooms": "3",
+              "price": prop.price,
+              "priceCurrency": "INR",
+              "availability": prop.status === 'FREE' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+              "datePosted": prop.createdAt,
+              "dateModified": prop.updatedAt || prop.createdAt,
+              "provider": {
+                "@type": "RealEstateAgent",
+                "name": "RealtyTopper",
+                "url": "https://realtytopper.com",
+                "telephone": "+918112279602",
+                "email": "bussiness.startup.work@gmail.com"
+              }
+            })}
+          </script>
+        )}
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -205,10 +309,6 @@ const PropertyDetail = () => {
                   </div>
                   
                   <div className="flex items-center gap-6 text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      <span>Owner: {prop.owner?.name || 'Anonymous'}</span>
-                    </div>
                     {prop.dealer && (
                       <div className="flex items-center">
                         <Star className="h-4 w-4 mr-2" />
@@ -253,12 +353,12 @@ const PropertyDetail = () => {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-6 text-center">
                   <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <User className="h-6 w-6 text-purple-600" />
+                    <MapPin className="h-6 w-6 text-purple-600" />
                   </div>
                   <div className="text-xl font-bold text-gray-900 mb-1">
-                    {prop.owner?.name || 'Anonymous'}
+                    {prop.address || 'Address not available'}
                   </div>
-                  <div className="text-sm text-gray-600">Property Owner</div>
+                  <div className="text-sm text-gray-600">Property Address</div>
                 </div>
               </div>
 
@@ -310,13 +410,13 @@ const PropertyDetail = () => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600">Booking charge</span>
-                        <span className="font-semibold text-gray-900">₹300</span>
+                        <span className="font-semibold text-gray-900">₹1000</span>
                       </div>
                       <hr className="border-gray-300" />
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-semibold text-gray-900">Total amount</span>
                         <span className="text-2xl font-bold text-green-600">
-                          ₹300
+                          ₹1000
                         </span>
                       </div>
                     </div>
@@ -346,7 +446,7 @@ const PropertyDetail = () => {
                     >
                       <div className="flex items-center justify-center gap-2">
                         <CreditCard className="h-5 w-5" />
-                        Book Now - ₹300
+                        Book Now - ₹1000
                       </div>
                     </button>
                   ) : (

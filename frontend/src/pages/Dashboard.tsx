@@ -203,13 +203,7 @@ const Dashboard = () => {
   }
 
   const stats = [
-    ...(user?.role === 'DEALER' ? [{
-      name: 'Total Commissions',
-      value: `₹${(commissions?.data?.reduce((sum: number, c: any) => sum + (c?.amount || 0), 0) || 0).toFixed(2)}`,
-      icon: IndianRupee,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-    }] : []),
+    // Removed Total Commissions section as requested
   ]
 
   if (bookingsLoading || commissionsLoading || propertiesLoading) {
@@ -381,6 +375,10 @@ const Dashboard = () => {
                           <p className="text-xs text-gray-500 mb-1">Payment Proof:</p>
                           <a 
                             href={import.meta.env.PROD ? `${window.location.origin}${booking.paymentProof}` : `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${booking.paymentProof}`}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              window.open(import.meta.env.PROD ? `${window.location.origin}${booking.paymentProof}` : `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${booking.paymentProof}`, '_blank')
+                            }}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-blue-600 hover:text-blue-800 underline"
@@ -442,10 +440,7 @@ const Dashboard = () => {
                 <RefreshCw className={`h-4 w-4 mr-2 ${propertiesLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
-              <Link to="/my-properties" className="btn btn-secondary">
-                <Eye className="h-4 w-4 mr-2" />
-                View All
-              </Link>
+
             </div>
           </div>
           

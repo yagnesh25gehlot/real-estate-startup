@@ -109,7 +109,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, property, 
             </div>
             <div className="flex items-center text-gray-600">
               <IndianRupee className="h-4 w-4 mr-1" />
-              <span className="font-semibold">₹300 booking amount</span>
+              <span className="font-semibold">₹1000 booking amount</span>
             </div>
           </div>
 
@@ -128,13 +128,23 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, property, 
               />
             </div>
 
+            {/* Contact Information */}
+            <div className="p-4 bg-green-50 rounded-lg">
+              <h4 className="font-semibold text-green-900 mb-2">Need Help?</h4>
+              <div className="text-sm text-green-800 space-y-1">
+                <p>📞 Call: <strong>+91 8112279602</strong></p>
+                <p>💬 WhatsApp: <strong>+91 8112279602</strong></p>
+                <p>📧 Email: <strong>bussiness.startup.work@gmail.com</strong></p>
+              </div>
+            </div>
+
             {/* UPI Payment Instructions */}
             <div className="p-4 bg-blue-50 rounded-lg">
               <h4 className="font-semibold text-blue-900 mb-2">Payment Instructions</h4>
               <div className="text-sm text-blue-800 space-y-1">
-                <p>1. Pay ₹300 to UPI ID: <strong>8290936884@ybl</strong></p>
+                <p>1. Pay ₹1000 to UPI ID: <strong>8290936884@ybl</strong></p>
                 <p>2. Enter the payment reference below</p>
-                <p>3. Upload payment proof (optional but recommended)</p>
+                <p>3. Upload payment proof (required)</p>
               </div>
             </div>
 
@@ -156,7 +166,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, property, 
             {/* Payment Proof Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Proof (Optional)
+                Payment Proof <span className="text-red-500">*</span>
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                 <input

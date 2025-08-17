@@ -132,8 +132,11 @@ const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => 
             placeholder="0"
             min="0"
             value={filters.minPrice}
-            onChange={(e) => onFiltersChange({ ...filters, minPrice: e.target.value })}
-            className="input"
+            onChange={(e) => {
+              const newFilters = { ...filters, minPrice: e.target.value }
+              onFiltersChange(newFilters)
+            }}
+            className="input text-gray-900"
           />
         </div>
 
@@ -145,8 +148,11 @@ const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => 
             placeholder="Any"
             min="0"
             value={filters.maxPrice}
-            onChange={(e) => onFiltersChange({ ...filters, maxPrice: e.target.value })}
-            className="input"
+            onChange={(e) => {
+              const newFilters = { ...filters, maxPrice: e.target.value }
+              onFiltersChange(newFilters)
+            }}
+            className="input text-gray-900"
           />
         </div>
 
