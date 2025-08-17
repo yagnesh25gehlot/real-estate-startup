@@ -84,7 +84,7 @@ export class BookingService {
       throw createError('Payment reference is required', 400);
     }
 
-    const bookingCharges = 300;
+    const bookingCharges = 1000;
     const totalAmount = bookingCharges;
 
     const booking = await prisma.booking.create({
@@ -176,8 +176,8 @@ export class BookingService {
       throw createError('User not found', 404);
     }
 
-    // Booking charges only (MVP): fixed ₹300 for the 3-day slot
-    const bookingCharges = 300;
+    // Booking charges only (MVP): fixed ₹1000 for the 3-day slot
+    const bookingCharges = 1000;
     const totalAmount = bookingCharges;
 
     // Create booking record
