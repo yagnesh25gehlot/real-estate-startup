@@ -1,0 +1,93 @@
+# Multi-stage build for production
+FROM node:18-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+WORKDIR /app
+
+# Install required SSL libraries for Prisma
+RUN apk add --no-cache openssl
+
+# Copy package files
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+COPY frontend/package*.json ./frontend/
+
+# Install all dependencies (including dev dependencies for build)
+RUN npm install
+RUN cd backend && npm install
+RUN cd frontend && npm install
+
+# Build the frontend
+FROM base AS frontend-builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
+COPY frontend/ ./frontend/
+WORKDIR /app/frontend
+RUN npm run build
+
+# Build the backend
+FROM base AS backend-builder
+WORKDIR /app
+# Install required SSL libraries for Prisma
+RUN apk add --no-cache openssl
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/backend/node_modules ./backend/node_modules
+COPY backend/ ./backend/
+WORKDIR /app/backend
+# Generate Prisma client before building
+RUN npx prisma generate
+RUN npm run build
+# Debug: Check what was built
+RUN pwd && ls -la
+RUN ls -la dist/ || echo "dist directory not found"
+RUN find . -name "*.js" -type f | head -10
+RUN ls -la node_modules/.prisma/ || echo "prisma client not found"
+
+# Production image
+FROM base AS runner
+WORKDIR /app
+
+# Install required SSL libraries for Prisma
+RUN apk add --no-cache openssl
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy built applications
+COPY --from=frontend-builder --chown=nextjs:nodejs /app/frontend/dist ./frontend/dist
+COPY --from=backend-builder --chown=nextjs:nodejs /app/backend/dist ./backend/dist
+COPY --from=backend-builder --chown=nextjs:nodejs /app/backend/node_modules ./backend/node_modules
+COPY --from=backend-builder --chown=nextjs:nodejs /app/backend/prisma ./backend/prisma
+
+# Regenerate Prisma client in production
+WORKDIR /app/backend
+RUN npx prisma generate
+WORKDIR /app
+
+# Copy necessary files
+COPY --chown=nextjs:nodejs backend/package*.json ./backend/
+COPY --chown=nextjs:nodejs package*.json ./
+
+# Create uploads directory
+RUN mkdir -p /app/backend/uploads/properties /app/backend/uploads/profiles /app/backend/uploads/payments /app/backend/uploads/aadhaar
+RUN chown -R nextjs:nodejs /app/backend/uploads
+
+# Debug: Check what was copied
+RUN ls -la backend/ || echo "backend directory not found"
+RUN ls -la backend/dist/ || echo "backend/dist directory not found"
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
+EXPOSE 3001
+
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Start the application
+CMD ["node", "backend/dist/index.js"]

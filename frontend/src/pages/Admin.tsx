@@ -8,7 +8,8 @@ import {
   TrendingUp,
   CheckCircle,
   Activity,
-  TreePine
+  TreePine,
+  Bell
 } from 'lucide-react'
 import { adminApi, commissionApi } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -77,7 +78,7 @@ const Admin = () => {
   return (
     <>
       <Helmet>
-        <title>Admin Dashboard - Property Platform</title>
+        <title>Admin Dashboard - RealtyTopper</title>
       </Helmet>
 
       <div className="max-w-7xl mx-auto p-6">
@@ -87,7 +88,7 @@ const Admin = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
               <p className="text-gray-600 mt-2">
-                Manage your property platform and monitor performance
+                Manage your RealtyTopper platform and monitor performance
               </p>
             </div>
             <NotificationBell />
@@ -149,7 +150,7 @@ const Admin = () => {
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Quick Actions</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
               onClick={() => navigate('/admin/properties')}
               className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -188,6 +189,14 @@ const Admin = () => {
             >
               <TreePine className="h-5 w-5 text-green-600 mr-2" />
               <span>Dealer Tree</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/notifications')}
+              className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Bell className="h-5 w-5 text-red-600 mr-2" />
+              <span>Notifications</span>
             </button>
           </div>
         </div>

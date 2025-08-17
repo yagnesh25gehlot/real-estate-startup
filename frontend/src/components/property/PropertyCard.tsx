@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { MapPin, IndianRupee } from 'lucide-react'
+import { getImageUrl } from '../../utils/imageUtils'
 
 interface PropertyCardProps {
   property: {
@@ -48,21 +49,15 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
     })
   }
 
-  // Get the correct image URL
-  const getImageUrl = (url: string) => {
-    if (!url) return '/placeholder-property.svg'
-    if (url.includes('example.com/mock-upload')) return '/placeholder-property.svg'
-    if (url.startsWith('/uploads/')) {
-      const fullUrl = `http://localhost:3001${url}`
-      return encodeURI(fullUrl)
-    }
-    return url
-  }
 
-  const imageUrl = property.mediaUrls?.[0] ? getImageUrl(property.mediaUrls[0]) : '/placeholder-property.svg'
+
+  // Parse mediaUrls from JSON string to array
+  const mediaUrlsArray = property.mediaUrls ? (typeof property.mediaUrls === 'string' ? JSON.parse(property.mediaUrls) : property.mediaUrls) : []
+  const imageUrl = mediaUrlsArray?.[0] ? getImageUrl(mediaUrlsArray[0]) : '/placeholder-property.svg'
   
   // Debug: Log the image URL being used
-  console.log('🔍 PropertyCard - Original URL:', property.mediaUrls?.[0])
+  console.log('🔍 PropertyCard - Original mediaUrls:', property.mediaUrls)
+  console.log('🔍 PropertyCard - Parsed array:', mediaUrlsArray)
   console.log('🔍 PropertyCard - Processed URL:', imageUrl)
 
   return (

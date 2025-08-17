@@ -1,20 +1,34 @@
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'https://real-estate-startup-production.up.railway.app'
+  : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
+
+console.log('🔧 API Configuration:', {
+  PROD: import.meta.env.PROD,
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  API_BASE_URL: API_BASE_URL
+});
 
 export const api = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: `${API_BASE_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Request interceptor to add auth token
+// Request interceptor to add user email header for MVP mode
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    // Add user email to headers for MVP mode authentication
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      try {
+        const user = JSON.parse(userData)
+        config.headers['X-User-Email'] = user.email
+      } catch (error) {
+        console.error('Error parsing user data:', error)
+      }
     }
     return config
   },
@@ -28,8 +42,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token')
+      // Unauthorized - clear user data and redirect to login
       localStorage.removeItem('user')
       window.location.href = '/login'
     }
@@ -51,6 +64,9 @@ export const propertiesApi = {
   delete: (id: string) => api.delete(`/properties/${id}`),
   getTypes: () => api.get('/properties/types/list'),
   getLocations: () => api.get('/properties/locations/list'),
+  uploadImage: (data: FormData) => api.post('/properties/upload-image', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 }
 
 export const bookingsApi = {
@@ -77,12 +93,36 @@ export const bookingsApi = {
 
 export const authApi = {
   googleLogin: (data: any) => api.post('/auth/google', data),
-  signup: (data: any) => api.post('/auth/signup', data),
+  signup: (data: any) => {
+    // If data is FormData (contains file), send as multipart
+    if (data instanceof FormData) {
+      return api.post('/auth/signup', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+    // Otherwise send as JSON
+    return api.post('/auth/signup', data);
+  },
   login: (data: any) => api.post('/auth/login', data),
-  dealerSignup: (data: any) => api.post('/auth/dealer-signup', data),
+  getProfile: () => api.get('/auth/me'),
+  dealerSignup: (data: any) => {
+    // If data is FormData (contains file), send as multipart
+    if (data instanceof FormData) {
+      return api.post('/auth/dealer-signup', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+    // Otherwise send as JSON
+    return api.post('/auth/dealer-signup', data);
+  },
   applyForDealer: (data: any) => api.post('/auth/apply-dealer', data),
   updateProfile: (data: any) => api.put('/auth/profile', data),
-  uploadProfilePic: (data: any) => api.post('/auth/profile-picture', data),
+  uploadProfilePic: (data: any) => api.post('/auth/profile-picture', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  uploadAadhaarImage: (data: any) => api.post('/auth/aadhaar-image', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   changePassword: (data: any) => api.put('/auth/password', data),
   logout: () => api.post('/auth/logout'),
 }
@@ -108,6 +148,22 @@ export const adminApi = {
   approveDealer: (dealerId: string) => api.put(`/admin/dealer-requests/${dealerId}/approve`),
   rejectDealer: (dealerId: string) => api.put(`/admin/dealer-requests/${dealerId}/reject`),
   getDealerTree: () => api.get('/admin/dealer-tree'),
+  blockUser: (userId: string) => api.put(`/admin/users/${userId}/block`),
+  unblockUser: (userId: string) => api.put(`/admin/users/${userId}/unblock`),
+  
+  // User management endpoints
+  getAllUsers: () => api.get('/admin/users'),
+  getUserById: (userId: string) => api.get(`/admin/users/${userId}`),
+  createUser: (data: any) => api.post('/admin/users', data),
+  updateUser: (userId: string, data: any) => api.put(`/admin/users/${userId}`, data),
+  updateUserPassword: (userId: string, password: string) => api.put(`/admin/users/${userId}/password`, { password }),
+  deleteUser: (userId: string) => api.delete(`/admin/users/${userId}`),
+  uploadUserProfilePic: (userId: string, data: FormData) => api.post(`/admin/users/${userId}/profile-picture`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  uploadUserAadhaarImage: (userId: string, data: FormData) => api.post(`/admin/users/${userId}/aadhaar-image`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 }
 
 export const commissionApi = {

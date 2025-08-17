@@ -3,36 +3,17 @@ import { Helmet } from 'react-helmet-async'
 import { 
   Search, 
   Filter, 
-  MapPin, 
-  IndianRupee, 
   Building2, 
-  Home as HomeIcon, 
   Users, 
-  Star, 
-  ArrowRight,
-  Shield,
-  Clock,
-  CheckCircle,
-  ChevronDown,
-  ChevronRight,
-  ChevronUp,
-  Phone,
-  Mail,
-  Award,
-  TrendingUp,
-  Heart,
-  Zap
+  MapPin
 } from 'lucide-react'
 import { propertiesApi } from '../services/api'
 import PropertyCard from '../components/property/PropertyCard'
 import PropertyFilters from '../components/property/PropertyFilters'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { useAuth } from '../contexts/AuthContext'
-import { Link } from 'react-router-dom'
 
 const Home = () => {
-  console.log('Home component rendering...')
-  
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
   
@@ -45,7 +26,7 @@ const Home = () => {
   })
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [propertiesPerPage] = useState(9) // 3x3 grid
+  const [propertiesPerPage] = useState(9)
 
   const [data, setData] = useState<any>({
     properties: [],
@@ -62,8 +43,6 @@ const Home = () => {
     const fetchProperties = async () => {
       try {
         setIsLoading(true)
-        console.log('Fetching properties with filters:', filters)
-        
         const params = {
           ...filters,
           page: currentPage,
@@ -71,7 +50,6 @@ const Home = () => {
         }
         
         const response = await propertiesApi.getAll(params)
-        console.log('API Response:', response.data)
         setData(response.data.data || { properties: [], pagination: { total: 0, page: 1, pages: 1 } })
         setError('')
       } catch (err: any) {
@@ -112,12 +90,6 @@ const Home = () => {
   const properties = data?.properties || []
   const pagination = data?.pagination
 
-  console.log('Home component about to render JSX...')
-  console.log('Properties data:', properties)
-  console.log('Pagination data:', pagination)
-  console.log('Is loading:', isLoading)
-  console.log('Error:', error)
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -125,30 +97,125 @@ const Home = () => {
 
   const handleFilterChange = (newFilters: any) => {
     setFilters(newFilters)
-    setCurrentPage(1) // Reset to first page when filters change
+    setCurrentPage(1)
+  }
+
+  // Debounced filter change for text inputs
+  const handleFilterChangeDebounced = (newFilters: any) => {
+    const timeoutId = setTimeout(() => {
+      setFilters(newFilters)
+      setCurrentPage(1)
+    }, 500) // 500ms delay
+
+    return () => clearTimeout(timeoutId)
   }
 
   return (
     <>
       <Helmet>
-        <title>Property Platform - Find Your Perfect Property</title>
-        <meta name="description" content="Discover amazing properties for sale and rent. Browse through our extensive collection of houses, apartments, and commercial properties." />
+        <title>RealtyTopper - Find Your Dream Property | Houses, Apartments, Commercial Properties</title>
+        <meta name="description" content="Discover the best properties across India. Browse houses, apartments, and commercial properties for sale and rent. Verified listings with secure booking. Contact us at +91 8112279602." />
+        <meta name="keywords" content="real estate, property for sale, houses for sale, apartments for rent, commercial property, property search, real estate India, property listing, buy property, rent property" />
+        <meta name="author" content="RealtyTopper" />
+        <meta name="robots" content="index, follow" />
+        <meta name="language" content="English" />
+        <meta name="revisit-after" content="7 days" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://realtytopper.com/" />
+        <meta property="og:title" content="RealtyTopper - Find Your Dream Property" />
+        <meta property="og:description" content="Discover the best properties across India. Browse houses, apartments, and commercial properties for sale and rent." />
+        <meta property="og:image" content="https://realtytopper.com/og-image.jpg" />
+        <meta property="og:site_name" content="RealtyTopper" />
+        
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://realtytopper.com/" />
+        <meta property="twitter:title" content="RealtyTopper - Find Your Dream Property" />
+        <meta property="twitter:description" content="Discover the best properties across India. Browse houses, apartments, and commercial properties for sale and rent." />
+        <meta property="twitter:image" content="https://realtytopper.com/twitter-image.jpg" />
+        
+        {/* Additional SEO Meta Tags */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#2563eb" />
+        <meta name="msapplication-TileColor" content="#2563eb" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="RealtyTopper" />
+        
+        {/* Canonical URL */}
+        <link rel="canonical" href="https://realtytopper.com/" />
+        
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "RealEstateAgent",
+            "name": "RealtyTopper",
+            "description": "Your trusted partner in real estate. We connect you with the best properties across multiple cities with verified listings and secure transactions.",
+            "url": "https://realtytopper.com",
+            "logo": "https://realtytopper.com/logo.png",
+            "image": "https://realtytopper.com/hero-image.jpg",
+            "telephone": "+918112279602",
+            "email": "bussiness.startup.work@gmail.com",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Near Sadar Police Station",
+              "addressLocality": "Bundi",
+              "addressRegion": "Rajasthan",
+              "postalCode": "323001",
+              "addressCountry": "IN"
+            },
+            "sameAs": [
+              "https://www.facebook.com/profile.php?id=61579263880439",
+              "https://www.instagram.com/realtytopper/"
+            ],
+            "areaServed": {
+              "@type": "Country",
+              "name": "India"
+            },
+            "serviceType": "Real Estate Services",
+            "priceRange": "₹₹"
+          })}
+        </script>
+        
+        {/* Local Business Schema */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            "name": "VRUSKARAMA REAL ESTATE PRIVATE LIMITED",
+            "description": "Professional real estate services in Bundi, Rajasthan",
+            "url": "https://realtytopper.com",
+            "telephone": "+918112279602",
+            "email": "bussiness.startup.work@gmail.com",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "C/O Rang Raj Kanwar, Near Sadar Police Station",
+              "addressLocality": "Bundi",
+              "addressRegion": "Rajasthan",
+              "postalCode": "323001",
+              "addressCountry": "IN"
+            },
+            "geo": {
+              "@type": "GeoCoordinates",
+              "latitude": "25.4419",
+              "longitude": "75.6404"
+            },
+            "openingHours": "Mo-Su 09:00-18:00",
+            "priceRange": "₹₹"
+          })}
+        </script>
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Hero Section with About/Business Info */}
+        {/* Hero Section */}
         <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-3xl p-8 md:p-12 mb-12 text-white overflow-hidden">
           <div className="absolute inset-0 bg-black opacity-10"></div>
           
           <div className="relative z-10">
             <div className="text-center mb-8">
-              <div className="mb-6">
-                <span className="inline-flex items-center px-4 py-2 bg-white bg-opacity-20 rounded-full text-sm font-medium mb-4">
-                  <Award className="h-4 w-4 mr-2" />
-                  Trusted by {stats.totalCustomers}+ customers
-                </span>
-              </div>
-              
               <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
                 Find Your Dream
                 <span className="block text-blue-200">Property Today</span>
@@ -156,11 +223,11 @@ const Home = () => {
               
               <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
                 Your trusted partner in real estate. We connect you with the best properties 
-                across {stats.totalCities}+ cities with verified listings and secure transactions.
+                across {stats.totalCities}+ cities with verified listings.
               </p>
             </div>
 
-            {/* Quick Search Bar */}
+            {/* Search Bar */}
             <div className="max-w-2xl mx-auto">
               <div className="bg-white rounded-2xl p-2 shadow-lg">
                 <div className="flex items-center gap-2">
@@ -187,7 +254,7 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Compact Filters Section */}
+        {/* Filters Section */}
         {showFilters && (
           <div className="mb-8 bg-white rounded-2xl shadow-lg p-6">
             <PropertyFilters
@@ -229,7 +296,6 @@ const Home = () => {
             </div>
           ) : properties.length === 0 ? (
             <div className="text-center py-12">
-              <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Found</h3>
               <p className="text-gray-600 mb-6">No properties match your current filters.</p>
               <button
@@ -247,11 +313,10 @@ const Home = () => {
                 ))}
               </div>
 
-              {/* Enhanced Pagination */}
+              {/* Pagination */}
               {pagination && pagination.pages > 1 && (
                 <div className="flex justify-center">
                   <nav className="flex items-center space-x-2 bg-white rounded-2xl shadow-lg p-4">
-                    {/* Previous Button */}
                     <button
                       onClick={() => handlePageChange(pagination.page - 1)}
                       disabled={pagination.page === 1}
@@ -260,7 +325,6 @@ const Home = () => {
                       Previous
                     </button>
 
-                    {/* Page Numbers */}
                     {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
                       let pageNum;
                       if (pagination.pages <= 5) {
@@ -288,7 +352,6 @@ const Home = () => {
                       );
                     })}
 
-                    {/* Next Button */}
                     <button
                       onClick={() => handlePageChange(pagination.page + 1)}
                       disabled={pagination.page === pagination.pages}
@@ -301,53 +364,6 @@ const Home = () => {
               )}
             </>
           )}
-        </div>
-
-        {/* Why Choose Us Section */}
-        <div className="mb-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose Our Platform?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We provide the best real estate experience with verified properties, 
-              secure transactions, and exceptional customer support.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center group">
-              <div className="bg-gradient-to-br from-blue-100 to-blue-200 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Shield className="h-10 w-10 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Verified Properties</h3>
-              <p className="text-gray-600">All properties are verified and quality-checked</p>
-            </div>
-            
-            <div className="text-center group">
-              <div className="bg-gradient-to-br from-green-100 to-green-200 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Zap className="h-10 w-10 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Quick Booking</h3>
-              <p className="text-gray-600">Book properties instantly with secure payments</p>
-            </div>
-            
-            <div className="text-center group">
-              <div className="bg-gradient-to-br from-purple-100 to-purple-200 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                <CheckCircle className="h-10 w-10 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Quality Assurance</h3>
-              <p className="text-gray-600">Quality properties with detailed information</p>
-            </div>
-            
-            <div className="text-center group">
-              <div className="bg-gradient-to-br from-orange-100 to-orange-200 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Clock className="h-10 w-10 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">24/7 Support</h3>
-              <p className="text-gray-600">Round the clock customer support</p>
-            </div>
-          </div>
         </div>
 
         {/* Stats Section */}
@@ -375,69 +391,6 @@ const Home = () => {
               </div>
               <div className="text-3xl font-bold mb-2">{stats.totalCities}+</div>
               <div className="text-purple-100">Cities Covered</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Call to Action Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-12 mb-12 text-white text-center">
-          <h2 className="text-4xl font-bold mb-4">
-            Ready to Find Your Dream Property?
-          </h2>
-          <p className="text-xl mb-8 text-blue-100 max-w-2xl mx-auto">
-            Join thousands of satisfied customers who found their perfect home through our platform.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/sell"
-              className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
-            >
-              <HomeIcon className="h-5 w-5" />
-              List Your Property
-            </Link>
-            <Link
-              to="/register"
-              className="border-2 border-white text-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
-            >
-              <ArrowRight className="h-5 w-5" />
-              Get Started
-            </Link>
-          </div>
-        </div>
-
-        {/* Contact Section */}
-        <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-3xl p-12 mb-12">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Need Help?</h2>
-            <p className="text-xl text-gray-600">Our team is here to assist you with any questions</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Phone className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Call Us</h3>
-              <p className="text-gray-600">+91 8290936884</p>
-              <p className="text-sm text-gray-500">Available 24/7</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Email Support</h3>
-              <p className="text-gray-600">support@propertyplatform.com</p>
-              <p className="text-sm text-gray-500">Response within 2 hours</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Live Chat</h3>
-              <p className="text-gray-600">Chat with our experts</p>
-              <p className="text-sm text-gray-500">Instant responses</p>
             </div>
           </div>
         </div>

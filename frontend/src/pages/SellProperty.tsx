@@ -8,30 +8,22 @@ import {
   Upload, 
   X, 
   Camera, 
-  Map,
-  Navigation,
   Building2,
   DollarSign,
   FileText,
-  Home
+  Home,
+  Navigation
 } from 'lucide-react'
 import { propertiesApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
-interface LocationData {
-  latitude: number;
-  longitude: number;
-  address: string;
-  city: string;
-}
+
 
 const SellProperty = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGettingLocation, setIsGettingLocation] = useState(false)
-  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null)
-  const [showMap, setShowMap] = useState(false)
   
   const [formData, setFormData] = useState({
     title: '',
@@ -48,25 +40,20 @@ const SellProperty = () => {
 
   // Get current location
   const getCurrentLocation = useCallback(() => {
-    console.log('🔍 Getting current location...')
-    
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by this browser')
       return
     }
 
     setIsGettingLocation(true)
-    // Show loading state
     toast.loading('Getting your location...', { id: 'location' })
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        console.log('📍 Location obtained:', position.coords)
         const { latitude, longitude } = position.coords
         
         try {
           // Reverse geocoding to get address
-          console.log('🌍 Getting address from coordinates...')
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
           )
@@ -76,62 +63,56 @@ const SellProperty = () => {
           }
           
           const data = await response.json()
-          console.log('📍 Address data:', data)
-          
           const address = data.display_name || ''
           const city = data.address?.city || data.address?.town || data.address?.village || data.address?.state || ''
           
-          setCurrentLocation({ latitude, longitude, address, city })
           setFormData(prev => ({
             ...prev,
             latitude: latitude.toString(),
             longitude: longitude.toString(),
             address: address,
-            location: city || prev.location // Keep existing location if no city found
+            location: city || prev.location
           }))
           
           toast.success('Location detected successfully!', { id: 'location' })
-          console.log('✅ Location set successfully')
         } catch (error) {
-          console.error('❌ Error getting address:', error)
-          toast.error('Could not get address details, but coordinates are saved', { id: 'location' })
-          
+          console.error('Error getting address:', error)
           // Still save the coordinates even if address lookup fails
-          setCurrentLocation({ latitude, longitude, address: '', city: '' })
           setFormData(prev => ({
             ...prev,
             latitude: latitude.toString(),
             longitude: longitude.toString()
           }))
+          toast.success('Coordinates saved! Please enter address manually.', { id: 'location' })
         } finally {
           setIsGettingLocation(false)
         }
       },
       (error) => {
-        console.error('❌ Geolocation error:', error)
+        console.error('Geolocation error:', error)
         let errorMessage = 'Could not get your current location'
         
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Location permission denied. Please allow location access in your browser settings.'
+            errorMessage = 'Location permission denied. Please allow location access.'
             break
           case error.POSITION_UNAVAILABLE:
             errorMessage = 'Location information is unavailable.'
             break
           case error.TIMEOUT:
-            errorMessage = 'Location request timed out. Please try again.'
+            errorMessage = 'Location request timed out.'
             break
           default:
-            errorMessage = 'An unknown error occurred while getting location.'
+            errorMessage = 'Could not get location automatically.'
         }
         
         toast.error(errorMessage, { id: 'location' })
         setIsGettingLocation(false)
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 300000
       }
     )
   }, [])
@@ -192,12 +173,12 @@ const SellProperty = () => {
       toast.error('Valid price is required')
       return
     }
-    if (!formData.location.trim()) {
-      toast.error('City/Location is required')
-      return
-    }
     if (!formData.description.trim()) {
       toast.error('Property description is required')
+      return
+    }
+    if (!formData.address.trim()) {
+      toast.error('Detailed address is required')
       return
     }
 
@@ -210,8 +191,12 @@ const SellProperty = () => {
       formDataToSend.append('type', formData.type)
       formDataToSend.append('location', formData.location.trim())
       formDataToSend.append('address', formData.address.trim() || '')
-      formDataToSend.append('latitude', formData.latitude || '')
-      formDataToSend.append('longitude', formData.longitude || '')
+      if (formData.latitude && formData.latitude.trim()) {
+        formDataToSend.append('latitude', formData.latitude.trim())
+      }
+      if (formData.longitude && formData.longitude.trim()) {
+        formDataToSend.append('longitude', formData.longitude.trim())
+      }
       formDataToSend.append('price', formData.price)
 
       // Append files (optional)
@@ -320,18 +305,17 @@ const SellProperty = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  City/Location <span className="text-red-500">*</span>
+                  City/Location <span className="text-gray-500 text-sm">(Optional)</span>
                 </label>
                 <input
                   type="text"
                   name="location"
-                  required
                   value={formData.location}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., Mumbai, Delhi, Bangalore"
                 />
-                <p className="text-xs text-gray-500 mt-1">Enter the city or general location of your property</p>
+                <p className="text-xs text-gray-500 mt-1">Enter the city or general location of your property (optional)</p>
               </div>
             </div>
 
@@ -356,89 +340,58 @@ const SellProperty = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
               <MapPin className="h-5 w-5 mr-2" />
-              Location Details <span className="text-sm font-normal text-gray-500 ml-2">(Optional)</span>
+              Location Details
             </h2>
             
-            <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <p className="text-sm text-gray-600">
-                <strong>Optional:</strong> Provide detailed location information to help buyers find your property. You can use "Get Current Location" to auto-fill these details.
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Important:</strong> Please provide the detailed address of your property. This helps buyers find your property easily.
               </p>
             </div>
 
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={getCurrentLocation}
+                disabled={isGettingLocation}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGettingLocation ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Getting Location...
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="h-4 w-4 mr-2" />
+                    Get Current Location
+                  </>
+                )}
+              </button>
+              <p className="text-xs text-gray-500 mt-1">Click to automatically detect your current location and fill in coordinates</p>
+            </div>
+
             <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <button
-                  type="button"
-                  onClick={getCurrentLocation}
-                  disabled={isGettingLocation}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isGettingLocation ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Getting Location...
-                    </>
-                  ) : (
-                    <>
-                      <Navigation className="h-4 w-4 mr-2" />
-                      Get Current Location
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowMap(!showMap)}
-                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                  <Map className="h-4 w-4 mr-2" />
-                  {showMap ? 'Hide Map' : 'Show Map'}
-                </button>
-              </div>
-
-              {currentLocation && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center text-green-800">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    <span className="font-medium">Location Detected</span>
-                  </div>
-                  <p className="text-sm text-green-700 mt-1">{currentLocation.address}</p>
-                </div>
-              )}
-
-              {showMap && currentLocation && (
-                <div className="border border-gray-300 rounded-lg overflow-hidden">
-                  <iframe
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${currentLocation.longitude-0.01},${currentLocation.latitude-0.01},${currentLocation.longitude+0.01},${currentLocation.latitude+0.01}&layer=mapnik&marker=${currentLocation.latitude},${currentLocation.longitude}`}
-                    width="100%"
-                    height="300"
-                    frameBorder="0"
-                    scrolling="no"
-                    marginHeight={0}
-                    marginWidth={0}
-                    title="Property Location"
-                  />
-                </div>
-              )}
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Detailed Address <span className="text-gray-500 text-sm">(Optional)</span>
+                  Detailed Address <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="address"
+                  required
                   value={formData.address}
                   onChange={handleChange}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter detailed address including street, area, landmarks..."
+                  placeholder="Enter complete address including street, area, landmarks, city, state, PIN code..."
                 />
-                <p className="text-xs text-gray-500 mt-1">Provide detailed address for better property visibility</p>
+                <p className="text-xs text-gray-500 mt-1">Provide the complete address for better property visibility</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Latitude <span className="text-gray-500 text-sm">(Auto-filled)</span>
+                    Latitude <span className="text-gray-500 text-sm">(Optional)</span>
                   </label>
                   <input
                     type="number"
@@ -447,14 +400,13 @@ const SellProperty = () => {
                     value={formData.latitude}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Latitude (auto-filled)"
-                    readOnly
+                    placeholder="Latitude (optional)"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Automatically filled when you use "Get Current Location"</p>
+                  <p className="text-xs text-gray-500 mt-1">Optional: Enter latitude coordinates if known</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Longitude <span className="text-gray-500 text-sm">(Auto-filled)</span>
+                    Longitude <span className="text-gray-500 text-sm">(Optional)</span>
                   </label>
                   <input
                     type="number"
@@ -463,10 +415,9 @@ const SellProperty = () => {
                     value={formData.longitude}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Longitude (auto-filled)"
-                    readOnly
+                    placeholder="Longitude (optional)"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Automatically filled when you use "Get Current Location"</p>
+                  <p className="text-xs text-gray-500 mt-1">Optional: Enter longitude coordinates if known</p>
                 </div>
               </div>
             </div>

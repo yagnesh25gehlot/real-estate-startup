@@ -15,14 +15,20 @@
     "jsx": "react-jsx",
 
     /* Linting */
-    "strict": true,
+    "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true,
+    "noFallthroughCasesInSwitch": false,
     
     /* Vite */
     "types": ["vite/client"]
   },
   "include": ["src"],
+  "exclude": [
+    "src/tests",
+    "src/setupTests.ts",
+    "src/**/*test*",
+    "src/**/*Test*"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 } 

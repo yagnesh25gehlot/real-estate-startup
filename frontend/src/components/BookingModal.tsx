@@ -91,11 +91,25 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, property, 
             <h3 className="font-semibold text-gray-900 mb-2">{property.title}</h3>
             <div className="flex items-center text-gray-600 mb-2">
               <Calendar className="h-4 w-4 mr-2" />
-              <span>{startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}</span>
+              <span>{startDate.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+              })} - {endDate.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+              })}</span>
             </div>
             <div className="flex items-center text-gray-600">
               <IndianRupee className="h-4 w-4 mr-1" />
-              <span className="font-semibold">300 booking charges</span>
+              <span className="font-semibold">₹1000 booking amount</span>
             </div>
           </div>
 
@@ -114,13 +128,23 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, property, 
               />
             </div>
 
+            {/* Contact Information */}
+            <div className="p-4 bg-green-50 rounded-lg">
+              <h4 className="font-semibold text-green-900 mb-2">Need Help?</h4>
+              <div className="text-sm text-green-800 space-y-1">
+                <p>📞 Call: <strong>+91 8112279602</strong></p>
+                <p>💬 WhatsApp: <strong>+91 8112279602</strong></p>
+                <p>📧 Email: <strong>bussiness.startup.work@gmail.com</strong></p>
+              </div>
+            </div>
+
             {/* UPI Payment Instructions */}
             <div className="p-4 bg-blue-50 rounded-lg">
               <h4 className="font-semibold text-blue-900 mb-2">Payment Instructions</h4>
               <div className="text-sm text-blue-800 space-y-1">
-                <p>1. Pay ₹300 to UPI ID: <strong>8290936884@ybl</strong></p>
+                <p>1. Pay ₹1000 to UPI ID: <strong>8290936884@ybl</strong></p>
                 <p>2. Enter the payment reference below</p>
-                <p>3. Upload payment proof (optional but recommended)</p>
+                <p>3. Upload payment proof (required)</p>
               </div>
             </div>
 
@@ -142,7 +166,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, property, 
             {/* Payment Proof Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Proof (Optional)
+                Payment Proof <span className="text-red-500">*</span>
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                 <input
@@ -181,9 +205,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, property, 
             </button>
           </form>
 
-          <div className="mt-4 text-xs text-gray-500 text-center">
-            <p>Booking will be reviewed by admin before confirmation</p>
-          </div>
+                      <div className="mt-4 text-xs text-gray-500 text-center">
+              <p>This booking reserves the property for 3 days. Admin will review and confirm.</p>
+            </div>
         </div>
       </div>
     </div>

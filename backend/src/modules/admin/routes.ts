@@ -1,8 +1,55 @@
 import express from 'express';
+import multer from 'multer';
 import { body, validationResult } from 'express-validator';
 import { AdminService } from './service';
 import { authMiddleware } from '../auth/middleware';
 import { AuthenticatedRequest } from '../auth/types';
+
+// Configure multer for profile picture uploads
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, 'uploads/profiles/');
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + '-' + file.originalname);
+    },
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for profile pictures
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed for profile pictures'));
+    }
+  },
+});
+
+// Configure multer for aadhaar image uploads
+const aadhaarUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, 'uploads/aadhaar/');
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + '-' + file.originalname);
+    },
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for aadhaar images
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed for aadhaar images'));
+    }
+  },
+});
 
 const router = express.Router();
 
@@ -98,6 +145,219 @@ router.get('/users', async (req, res, next) => {
     res.json({
       success: true,
       data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Create new user (admin only)
+router.post('/users', authMiddleware(['ADMIN']), [
+  body('email').isEmail().normalizeEmail(),
+  body('name').trim().isLength({ min: 2 }),
+  body('password').optional().isLength({ min: 8 }),
+  body('mobile').optional().matches(/^(\+91-)?[6-9]\d{9}$/).withMessage('Mobile number must be a valid Indian mobile number'),
+  body('aadhaar').optional().isLength({ min: 12, max: 12 }).matches(/^\d{12}$/),
+  body('role').optional().isIn(['USER', 'DEALER', 'ADMIN']),
+], async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array(),
+      });
+    }
+
+    const { email, name, password, mobile, aadhaar, role } = req.body;
+
+    const result = await AdminService.createUser({
+      email,
+      name,
+      password,
+      mobile,
+      aadhaar,
+      role: role || 'USER',
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update user (admin only)
+router.put('/users/:userId', authMiddleware(['ADMIN']), [
+  body('name').optional().trim().isLength({ min: 2 }),
+  body('mobile').optional().matches(/^(\+91-)?[6-9]\d{9}$/).withMessage('Mobile number must be a valid Indian mobile number'),
+  body('aadhaar').optional().isLength({ min: 12, max: 12 }).matches(/^\d{12}$/),
+  body('role').optional().isIn(['USER', 'DEALER', 'ADMIN']),
+], async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array(),
+      });
+    }
+
+    const { userId } = req.params;
+    const { name, mobile, aadhaar, role } = req.body;
+
+    const result = await AdminService.updateUser(userId, {
+      name,
+      mobile,
+      aadhaar,
+      role,
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update user password (admin only)
+router.put('/users/:userId/password', authMiddleware(['ADMIN']), [
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
+], async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array(),
+      });
+    }
+
+    const { userId } = req.params;
+    const { password } = req.body;
+
+    const result = await AdminService.updateUserPassword(userId, password);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete user (admin only)
+router.delete('/users/:userId', authMiddleware(['ADMIN']), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { userId } = req.params;
+
+    const result = await AdminService.deleteUser(userId);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Upload profile picture for user (admin only)
+router.post('/users/:userId/profile-picture', authMiddleware(['ADMIN']), upload.single('profilePic'), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded',
+      });
+    }
+
+    const { userId } = req.params;
+    const profilePicUrl = `/uploads/profiles/${req.file.filename}`;
+
+    const result = await AdminService.updateUserProfilePicture(userId, profilePicUrl);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Upload aadhaar image for user (admin only)
+router.post('/users/:userId/aadhaar-image', authMiddleware(['ADMIN']), aadhaarUpload.single('aadhaarImage'), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded',
+      });
+    }
+
+    const { userId } = req.params;
+    const aadhaarImageUrl = `/uploads/aadhaar/${req.file.filename}`;
+
+    const result = await AdminService.updateUserAadhaarImage(userId, aadhaarImageUrl);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get single user (admin only)
+router.get('/users/:userId', authMiddleware(['ADMIN']), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await AdminService.getUserById(userId);
+
+    res.json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Block user
+router.put('/users/:userId/block', async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const result = await AdminService.blockUser(userId);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Unblock user
+router.put('/users/:userId/unblock', async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const result = await AdminService.unblockUser(userId);
+
+    res.json({
+      success: true,
+      data: result,
     });
   } catch (error) {
     next(error);

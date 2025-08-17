@@ -1,5 +1,8 @@
 import { Request } from 'express';
-import { User, Role } from '@prisma/client';
+import { User } from '@prisma/client';
+
+// Define Role as a string type since it's not an enum in the schema
+export type Role = 'USER' | 'DEALER' | 'ADMIN';
 
 export interface AuthenticatedRequest extends Request {
   user?: User;
@@ -27,6 +30,7 @@ export interface LoginResponse {
     name: string | null;
     mobile?: string | null;
     aadhaar?: string | null;
+    aadhaarImage?: string | null;
     profilePic?: string | null;
     role: Role;
     createdAt: Date;
@@ -36,7 +40,6 @@ export interface LoginResponse {
       status: string;
     } | null;
   };
-  token: string;
 }
 
 export interface LoginRequest {
