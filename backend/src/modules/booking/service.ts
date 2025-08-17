@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { createError } from '../../utils/errorHandler';
 import { PaymentService } from '../../utils/paymentService';
 import { sendManualBookingSubmittedEmail } from '../../mail/notifications';
+import { NotificationService } from '../notification/service';
 
 const prisma = new PrismaClient();
 
@@ -114,6 +115,14 @@ export class BookingService {
         proofUrl: paymentProof,
         start: defaultStartDate.toDateString(),
         end: defaultEndDate.toDateString(),
+      });
+      
+      // Create notification for admin
+      await NotificationService.createNotification({
+        userId: 'admin',
+        type: 'BOOKING_CREATED',
+        title: 'New Booking Request',
+        message: `${booking.user.name || booking.user.email} requested booking for ${booking.property.title} in ${booking.property.location}`
       });
       
       // Also log to console for immediate visibility

@@ -78,18 +78,21 @@ export class PropertyService {
         },
       });
 
-      // Send notification to admin (temporarily disabled)
-      /*
+      // Send notification to admin
       try {
         const owner = await prisma.user.findUnique({ where: { id: property.ownerId } });
         if (owner) {
-          await NotificationService.notifyPropertyAdded(property, owner);
+          await NotificationService.createNotification({
+            userId: 'admin', // This will be sent to all admins
+            type: 'PROPERTY_ADDED',
+            title: 'New Property Added',
+            message: `${owner.name || owner.email} added a new property: ${property.title} in ${property.location}`
+          });
         }
       } catch (notificationError) {
         console.error('Failed to send property added notification:', notificationError);
         // Don't fail the property creation if notification fails
       }
-      */
 
       return property;
     } catch (error) {

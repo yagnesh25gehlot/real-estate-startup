@@ -143,17 +143,20 @@ export class AuthService {
         },
       });
 
-      // Send notification to admin about new user signup (temporarily disabled)
-      /*
+      // Send notification to admin about new user signup
       try {
-        await NotificationService.notifyUserSignup(newUser);
+        await NotificationService.createNotification({
+          userId: 'admin',
+          type: 'USER_SIGNUP',
+          title: 'New User Registration',
+          message: `${newUser.name} (${newUser.email}) has registered as a new user`
+        });
       } catch (notificationError) {
         // Log error but don't fail the signup
         if (process.env.NODE_ENV !== 'production') {
           console.error('Failed to send user signup notification:', notificationError);
         }
       }
-      */
 
       // Return user data only (no token)
       return {
@@ -413,6 +416,19 @@ export class AuthService {
       } catch (emailError) {
         console.error('Failed to send dealer approval email:', emailError);
         // Don't fail the signup if email fails
+      }
+
+      // Send notification to admin about new dealer signup
+      try {
+        await NotificationService.createNotification({
+          userId: 'admin',
+          type: 'DEALER_SIGNUP',
+          title: 'New Dealer Registration',
+          message: `${request.name} (${request.email}) has applied to become a dealer`
+        });
+      } catch (notificationError) {
+        console.error('Failed to send dealer signup notification:', notificationError);
+        // Don't fail the signup if notification fails
       }
 
       return {

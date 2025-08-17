@@ -236,7 +236,7 @@ const Home = () => {
                     <input
                       type="text"
                       placeholder="Search by location, property type..."
-                      className="w-full pl-10 pr-4 py-3 border-0 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full pl-10 pr-4 py-3 border-0 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
                       value={filters.location}
                       onChange={(e) => handleFilterChange({ ...filters, location: e.target.value })}
                     />
