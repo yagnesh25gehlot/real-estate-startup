@@ -4,8 +4,6 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
-
 // Import routes
 import authRoutes from './modules/auth/routes';
 import propertyRoutes from './modules/properties/routes';
@@ -19,10 +17,12 @@ import { errorHandler } from './utils/errorHandler';
 import { authMiddleware } from './modules/auth/middleware';
 import { BookingService } from './modules/booking/service';
 
+// Import database configuration
+import prisma from './config/database';
+
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
 // Trust Railway proxy
@@ -60,7 +60,8 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
       process.env.FRONTEND_URL || 'https://real-estate-startup-production.up.railway.app',
       'https://realtytopper.com',
-      'https://www.realtytopper.com'
+      'https://www.realtytopper.com',
+      'https://m.realtytopper.com' // Mobile subdomain support
     ].filter(Boolean)
   : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174', 'http://127.0.0.1:5175', 'http://127.0.0.1:5176', null];
 
@@ -73,17 +74,19 @@ app.use(cors({
     }
     
     console.log('CORS: Checking origin:', origin);
+    
+    // Check if origin is in allowed list
     if (allowedOrigins.indexOf(origin) !== -1) {
       console.log('CORS: Origin allowed');
       callback(null, true);
     } else {
-      console.log('CORS: Origin not allowed');
+      console.log('CORS: Origin not allowed:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-User-Email'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-User-Email', 'User-Agent'],
   exposedHeaders: ['X-Total-Count'],
   maxAge: 86400, // 24 hours
 }));
@@ -101,6 +104,18 @@ const limiter = rateLimit({
     // Use X-Forwarded-For header if available (Railway proxy)
     return req.headers['x-forwarded-for'] as string || req.ip;
   },
+});
+
+// Mobile browser detection middleware
+app.use((req, res, next) => {
+  const userAgent = req.headers['user-agent'] || '';
+  const isMobileBrowser = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  
+  if (isMobileBrowser) {
+    console.log('📱 Mobile browser detected:', userAgent.substring(0, 100));
+  }
+  
+  next();
 });
 
 // Apply rate limiting to all routes

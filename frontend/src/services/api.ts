@@ -41,11 +41,33 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('API Error:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        baseURL: error.config?.baseURL
+      }
+    })
+
     if (error.response?.status === 401) {
       // Unauthorized - clear user data and redirect to login
       localStorage.removeItem('user')
       window.location.href = '/login'
     }
+    
+    // Enhanced error handling for mobile
+    if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+      error.message = 'Network error. Please check your internet connection.'
+    } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      error.message = 'Request timed out. Please try again.'
+    } else if (error.response?.status === 0) {
+      error.message = 'Unable to connect to server. Please check your connection.'
+    }
+    
     return Promise.reject(error)
   }
 )

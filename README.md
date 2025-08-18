@@ -36,6 +36,7 @@ This application is optimized for deployment on Railway. Follow the deployment g
 
 ## 🔧 Local Development
 
+### Option 1: Use Railway Database (Recommended)
 ```bash
 # Clone the repository
 git clone <your-repo-url>
@@ -46,13 +47,32 @@ npm install
 cd backend && npm install
 cd ../frontend && npm install
 
-# Set up environment variables
-cp env.example .env
-# Edit .env with your configuration
+# Start development environment with Railway database
+./start-dev.sh
+```
 
-# Start development servers
+This will automatically connect to your Railway PostgreSQL database, so you can see real production data during development.
+
+### Option 2: Use Local Database
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd real-estate-startup
+
+# Install dependencies
+npm install
+cd backend && npm install
+cd ../frontend && npm install
+
+# Set up local PostgreSQL database
+cd backend && ./setup-local-db.sh
+
+# Start with local database
+export LOCAL_DATABASE_URL="postgresql://postgres:password@localhost:5432/real_estate"
 npm run dev
 ```
+
+**Note**: The application automatically detects the environment and uses the appropriate database configuration.
 
 ## 📄 License
 

@@ -1,11 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Helmet } from 'react-helmet-async'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+
 import { 
   MapPin, 
   Upload, 
@@ -20,59 +18,17 @@ import {
 import { propertiesApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
-// Fix for default markers in react-leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
 
 
 
-// Map component for location selection
-const LocationMap = ({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) => {
-  const [position, setPosition] = useState<[number, number] | null>(null)
 
-  useEffect(() => {
-    // Default to a central location in India
-    setPosition([20.5937, 78.9629])
-  }, [])
 
-  const MapEvents = () => {
-    useMapEvents({
-      click: (e) => {
-        const { lat, lng } = e.latlng
-        setPosition([lat, lng])
-        onLocationSelect(lat, lng)
-      },
-    })
-    return null
-  }
-
-  return (
-    <MapContainer
-      center={position || [20.5937, 78.9629]}
-      zoom={13}
-      style={{ height: '400px', width: '100%' }}
-      className="rounded-lg"
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
-      <MapEvents />
-      {position && <Marker position={position} />}
-    </MapContainer>
-  )
-}
 
 const SellProperty = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGettingLocation, setIsGettingLocation] = useState(false)
-  const [showMap, setShowMap] = useState(false)
   
   const [formData, setFormData] = useState({
     title: '',
@@ -87,42 +43,7 @@ const SellProperty = () => {
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
 
-  // Handle location selection from map
-  const handleLocationSelect = useCallback(async (lat: number, lng: number) => {
-    try {
-      // Reverse geocoding to get address
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
-      )
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      const address = data.display_name || ''
-      const city = data.address?.city || data.address?.town || data.address?.village || data.address?.state || ''
-      
-      setFormData(prev => ({
-        ...prev,
-        latitude: lat.toString(),
-        longitude: lng.toString(),
-        address: address,
-        location: city || prev.location
-      }))
-      
-      toast.success('Location selected successfully!')
-    } catch (error) {
-      console.error('Error getting address:', error)
-      // Still save the coordinates even if address lookup fails
-      setFormData(prev => ({
-        ...prev,
-        latitude: lat.toString(),
-        longitude: lng.toString()
-      }))
-      toast.success('Coordinates saved! Please enter address manually.')
-    }
-  }, [])
+
 
   // Get current location
   const getCurrentLocation = useCallback(() => {
@@ -161,7 +82,6 @@ const SellProperty = () => {
           }))
           
           toast.success('Location detected successfully!', { id: 'location' })
-          setShowMap(true) // Show map after getting location
         } catch (error) {
           console.error('Error getting address:', error)
           // Still save the coordinates even if address lookup fails
@@ -171,7 +91,6 @@ const SellProperty = () => {
             longitude: longitude.toString()
           }))
           toast.success('Coordinates saved! Please enter address manually.', { id: 'location' })
-          setShowMap(true) // Show map even if address lookup fails
         } finally {
           setIsGettingLocation(false)
         }
@@ -459,38 +378,7 @@ const SellProperty = () => {
               <p className="text-xs text-gray-500 mt-1">Click to automatically detect your current location and fill in coordinates</p>
             </div>
 
-            {/* Map Section */}
-            {showMap && (
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Select Exact Location</h3>
-                <p className="text-sm text-gray-600 mb-4">Click on the map to set the exact location. The address will be automatically filled.</p>
-                <LocationMap onLocationSelect={handleLocationSelect} />
-                <div className="mt-4 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowMap(false)}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                  >
-                    Hide Map
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        latitude: '',
-                        longitude: '',
-                        address: ''
-                      }))
-                      setShowMap(false)
-                    }}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    Clear Location
-                  </button>
-                </div>
-              </div>
-            )}
+
 
             <div className="space-y-4">
               <div>

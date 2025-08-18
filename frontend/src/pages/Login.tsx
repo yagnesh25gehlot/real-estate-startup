@@ -25,16 +25,37 @@ const Login = () => {
     e.preventDefault()
     setIsLoading(true)
 
-               try {
-             const response = await authService.login(formData)
-             
-             // Use AuthContext login method which handles navigation
-             await login(response.user)
-             
-             toast.success('Login successful!')
+    try {
+      // Add mobile-specific error handling
+      if (!formData.email || !formData.password) {
+        toast.error('Please fill in all fields')
+        return
+      }
+
+      const response = await authService.login(formData)
+      
+      // Use AuthContext login method which handles navigation
+      await login(response.user)
+      
+      toast.success('Login successful!')
     } catch (error: any) {
       console.error('Login error:', error)
-      toast.error(error.message || 'Login failed')
+      
+      // Mobile-friendly error messages
+      let errorMessage = 'Login failed'
+      if (error.message) {
+        if (error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection.'
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again.'
+        } else if (error.message.includes('Invalid credentials')) {
+          errorMessage = 'Invalid email or password.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -81,6 +102,10 @@ const Login = () => {
                     onChange={handleInputChange}
                     className="input pl-10"
                     placeholder="Enter your email"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
                   />
                 </div>
               </div>
@@ -101,6 +126,10 @@ const Login = () => {
                     onChange={handleInputChange}
                     className="input pl-10 pr-10"
                     placeholder="Enter your password"
+                    inputMode="text"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
                   />
                   <button
                     type="button"
@@ -116,9 +145,17 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full btn btn-primary disabled:opacity-50"
+                  className="w-full btn btn-primary disabled:opacity-50 min-h-[44px] touch-manipulation"
+                  style={{ minHeight: '44px' }}
                 >
-                  {isLoading ? 'Signing in...' : 'Sign in'}
+                  {isLoading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Signing in...
+                    </div>
+                  ) : (
+                    'Sign in'
+                  )}
                 </button>
               </div>
             </form>

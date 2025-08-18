@@ -130,16 +130,21 @@ router.post('/login', [
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        error: 'Validation failed',
+        error: 'Please provide a valid email and password',
         details: errors.array(),
       });
     }
 
     const { email, password } = req.body;
     
+    // Mobile browser detection
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobileBrowser = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
     console.log('🔍 Login attempt - Original email:', req.body.email);
     console.log('🔍 Login attempt - Normalized email:', email);
     console.log('🔍 Login attempt - Password length:', password.length);
+    console.log('📱 Mobile browser:', isMobileBrowser);
 
     const result = await AuthService.login({
       email,
@@ -151,8 +156,21 @@ router.post('/login', [
       success: true,
       data: result,
     });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    console.error('❌ Login error:', error);
+    
+    // Mobile-friendly error messages
+    let errorMessage = error.message || 'Login failed';
+    if (error.message.includes('User not found')) {
+      errorMessage = 'Invalid email or password';
+    } else if (error.message.includes('Invalid password')) {
+      errorMessage = 'Invalid email or password';
+    }
+    
+    res.status(400).json({
+      success: false,
+      error: errorMessage,
+    });
   }
 });
 
