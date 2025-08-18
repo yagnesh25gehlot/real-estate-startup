@@ -6,9 +6,9 @@ const isLocal = import.meta.env.DEV
 
 // API Base URL configuration with fallbacks
 const getApiBaseUrl = (): string => {
-  // Production environment - always use Railway backend
+  // Production environment - use custom domain (more reliable than Railway subdomain)
   if (isProduction) {
-    return 'https://real-estate-startup-production.up.railway.app'
+    return 'https://realtytopper.com'
   }
   
   // Local development
@@ -22,7 +22,7 @@ const getApiBaseUrl = (): string => {
   }
   
   // Fallback for other environments
-  return import.meta.env.VITE_API_URL || 'https://real-estate-startup-production.up.railway.app'
+  return import.meta.env.VITE_API_URL || 'https://realtytopper.com'
 }
 
 const API_BASE_URL = getApiBaseUrl()
