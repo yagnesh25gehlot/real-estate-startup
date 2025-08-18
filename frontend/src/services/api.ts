@@ -1,17 +1,41 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.PROD 
-  ? 'https://real-estate-startup-production.up.railway.app'
-  : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
+// Environment detection
+const isProduction = import.meta.env.PROD
+const isLocal = import.meta.env.DEV
 
-console.log('🔧 API Configuration:', {
-  PROD: import.meta.env.PROD,
+// API Base URL configuration with fallbacks
+const getApiBaseUrl = (): string => {
+  // Production environment
+  if (isProduction) {
+    return 'https://real-estate-startup-production.up.railway.app'
+  }
+  
+  // Local development
+  if (isLocal) {
+    // Check if VITE_API_URL is set (for custom local backend)
+    if (import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL
+    }
+    // Default local backend
+    return 'http://localhost:3001'
+  }
+  
+  // Fallback for other environments
+  return import.meta.env.VITE_API_URL || 'https://real-estate-startup-production.up.railway.app'
+}
+
+const API_BASE_URL = getApiBaseUrl()
+
+console.log('🔧 Frontend API Configuration:', {
+  PROD: isProduction,
+  DEV: isLocal,
   VITE_API_URL: import.meta.env.VITE_API_URL,
   API_BASE_URL: API_BASE_URL
-});
+})
 
 // Detect mobile device
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -26,7 +50,7 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Mobile detection for logging only (not sent as header to avoid CORS issues)
-    const deviceType = isMobile ? 'mobile' : 'desktop';
+    const deviceType = isMobile ? 'mobile' : 'desktop'
     
     // Add user email to headers for MVP mode authentication
     const userData = localStorage.getItem('user')

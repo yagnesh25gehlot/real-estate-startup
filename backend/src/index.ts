@@ -17,13 +17,12 @@ import { errorHandler } from './utils/errorHandler';
 import { authMiddleware } from './modules/auth/middleware';
 import { BookingService } from './modules/booking/service';
 
-// Import database configuration
+// Import configurations
+import { config } from './config/environment';
 import prisma from './config/database';
 
-dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = config.PORT;
 
 // Trust Railway proxy
 app.set('trust proxy', 1);
@@ -56,9 +55,9 @@ app.use(helmet({
 }));
 
 // Secure CORS configuration
-const allowedOrigins = process.env.NODE_ENV === 'production' 
+const allowedOrigins = config.isProduction 
   ? [
-      process.env.FRONTEND_URL || 'https://real-estate-startup-production.up.railway.app',
+      config.FRONTEND_URL || 'https://real-estate-startup-production.up.railway.app',
       'https://realtytopper.com',
       'https://www.realtytopper.com',
       'https://m.realtytopper.com' // Mobile subdomain support
@@ -94,7 +93,7 @@ app.use(cors({
 // Rate limiting (reduced for development)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 5000, // limit each IP to 100 requests per windowMs in production, 5000 in development
+  max: config.isProduction ? 100 : 5000, // limit each IP to 100 requests per windowMs in production, 5000 in development
   message: { error: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -205,7 +204,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // Serve frontend static files in production
-if (process.env.NODE_ENV === 'production') {
+if (config.isProduction) {
   app.use(express.static(path.join(__dirname, '../../frontend/dist')));
   
   // Handle client-side routing
@@ -243,9 +242,9 @@ process.on('SIGINT', async () => {
 // Start server
 app.listen(PORT, () => {
   // Minimal logging in production
-  if (process.env.NODE_ENV !== 'production') {
+  if (!config.isProduction) {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+    console.log(`📊 Environment: ${config.NODE_ENV}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   }
 });
@@ -253,11 +252,11 @@ app.listen(PORT, () => {
 // Scheduled task to check for expired bookings
 const checkExpiredBookings = async () => {
   try {
-    if (process.env.NODE_ENV !== 'production') {
+    if (!config.isProduction) {
       console.log('🕐 Checking for expired bookings...');
     }
     await BookingService.updateExpiredBookings();
-    if (process.env.NODE_ENV !== 'production') {
+    if (!config.isProduction) {
       console.log('✅ Expired bookings check completed');
     }
   } catch (error) {
@@ -274,7 +273,7 @@ setInterval(checkExpiredBookings, EXPIRED_BOOKINGS_CHECK_INTERVAL);
 // Run initial check after 5 minutes to avoid running immediately on startup
 setTimeout(checkExpiredBookings, 5 * 60 * 1000);
 
-if (process.env.NODE_ENV !== 'production') {
+if (!config.isProduction) {
   console.log(`⏰ Scheduled task: Checking expired bookings every ${EXPIRED_BOOKINGS_CHECK_INTERVAL / (60 * 1000)} minutes`);
 }
 
