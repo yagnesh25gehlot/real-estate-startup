@@ -6,7 +6,7 @@ const isLocal = import.meta.env.DEV
 
 // API Base URL configuration with fallbacks
 const getApiBaseUrl = (): string => {
-  // Production environment
+  // Production environment - always use Railway backend
   if (isProduction) {
     return 'https://real-estate-startup-production.up.railway.app'
   }
@@ -31,7 +31,8 @@ console.log('🔧 Frontend API Configuration:', {
   PROD: isProduction,
   DEV: isLocal,
   VITE_API_URL: import.meta.env.VITE_API_URL,
-  API_BASE_URL: API_BASE_URL
+  API_BASE_URL: API_BASE_URL,
+  location: window.location.href
 })
 
 // Detect mobile device
@@ -43,7 +44,7 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
   // Mobile-specific timeout settings
-  timeout: isMobile ? 30000 : 10000, // 30 seconds for mobile, 10 for desktop
+  timeout: isMobile ? 30000 : 15000, // 30 seconds for mobile, 15 for desktop
 })
 
 // Request interceptor to add user email header for MVP mode
@@ -67,7 +68,9 @@ api.interceptors.request.use(
       url: config.url,
       method: config.method,
       device: deviceType,
-      hasUserEmail: !!config.headers['X-User-Email']
+      hasUserEmail: !!config.headers['X-User-Email'],
+      baseURL: config.baseURL,
+      timeout: config.timeout
     })
     
     return config
@@ -110,7 +113,7 @@ api.interceptors.response.use(
       window.location.href = '/login'
     }
     
-    // Enhanced error handling for mobile
+    // Enhanced error handling for mobile and production
     if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
       error.message = 'Network error. Please check your internet connection and try again.'
     } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
@@ -121,11 +124,25 @@ api.interceptors.response.use(
       error.message = 'Server error. Please try again in a few moments.'
     } else if (error.response?.status === 404) {
       error.message = 'Service not found. Please try again later.'
+    } else if (error.response?.status === 503) {
+      error.message = 'Service temporarily unavailable. Please try again in a few minutes.'
     }
     
     return Promise.reject(error)
   }
 )
+
+// Health check function to test API connectivity
+export const checkApiHealth = async (): Promise<boolean> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/health`, { timeout: 10000 })
+    console.log('✅ API Health Check:', response.status)
+    return response.status === 200
+  } catch (error) {
+    console.error('❌ API Health Check Failed:', error)
+    return false
+  }
+}
 
 // API endpoints
 export const propertiesApi = {
