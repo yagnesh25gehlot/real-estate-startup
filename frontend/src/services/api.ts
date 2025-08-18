@@ -25,8 +25,8 @@ export const api = axios.create({
 // Request interceptor to add user email header for MVP mode
 api.interceptors.request.use(
   (config) => {
-    // Add mobile detection header
-    config.headers['X-Device-Type'] = isMobile ? 'mobile' : 'desktop';
+    // Mobile detection for logging only (not sent as header to avoid CORS issues)
+    const deviceType = isMobile ? 'mobile' : 'desktop';
     
     // Add user email to headers for MVP mode authentication
     const userData = localStorage.getItem('user')
@@ -42,7 +42,7 @@ api.interceptors.request.use(
     console.log('🔍 API Request:', {
       url: config.url,
       method: config.method,
-      device: isMobile ? 'mobile' : 'desktop',
+      device: deviceType,
       hasUserEmail: !!config.headers['X-User-Email']
     })
     
@@ -60,7 +60,7 @@ api.interceptors.response.use(
     console.log('✅ API Response:', {
       url: response.config.url,
       status: response.status,
-      device: isMobile ? 'mobile' : 'desktop'
+      device: deviceType
     })
     return response
   },
@@ -71,7 +71,7 @@ api.interceptors.response.use(
       data: error.response?.data,
       message: error.message,
       code: error.code,
-      device: isMobile ? 'mobile' : 'desktop',
+      device: deviceType,
       config: {
         url: error.config?.url,
         method: error.config?.method,

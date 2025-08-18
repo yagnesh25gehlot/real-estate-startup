@@ -86,7 +86,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-User-Email', 'User-Agent'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-User-Email', 'User-Agent', 'X-Device-Type'],
   exposedHeaders: ['X-Total-Count'],
   maxAge: 86400, // 24 hours
 }));
