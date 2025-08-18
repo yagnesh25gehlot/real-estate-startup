@@ -19,6 +19,8 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    /* Prevent zoom on input focus on iOS */
+    touch-action: manipulation;
   }
   
   /* Enable text selection for inputs and text areas */
@@ -28,12 +30,32 @@
     -moz-user-select: text;
     -ms-user-select: text;
     user-select: text;
+    /* Prevent zoom on iOS */
+    font-size: 16px !important;
+  }
+  
+  /* Mobile-specific optimizations */
+  @media (max-width: 768px) {
+    input, textarea, select {
+      font-size: 16px !important;
+      -webkit-appearance: none;
+      border-radius: 8px;
+    }
+    
+    button {
+      -webkit-appearance: none;
+      border-radius: 8px;
+      touch-action: manipulation;
+    }
   }
 }
 
 @layer components {
   .btn {
     @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    /* Mobile touch optimization */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   
   .btn-primary {
@@ -56,6 +78,10 @@
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
     min-height: 44px;
     font-size: 16px; /* Prevents zoom on iOS */
+    -webkit-appearance: none;
+    border-radius: 8px;
+    /* Mobile touch optimization */
+    touch-action: manipulation;
   }
   
   .label {
@@ -73,10 +99,32 @@
   .success {
     @apply text-green-600 text-sm mt-1;
   }
+  
+  /* Mobile-specific form optimizations */
+  @media (max-width: 768px) {
+    .input {
+      min-height: 48px;
+      padding: 12px 16px;
+    }
+    
+    .btn {
+      min-height: 48px;
+      padding: 12px 16px;
+    }
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  /* Mobile touch utilities */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
   }
 } 

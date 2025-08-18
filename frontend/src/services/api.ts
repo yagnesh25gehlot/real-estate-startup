@@ -10,16 +10,24 @@ console.log('🔧 API Configuration:', {
   API_BASE_URL: API_BASE_URL
 });
 
+// Detect mobile device
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
+  // Mobile-specific timeout settings
+  timeout: isMobile ? 30000 : 10000, // 30 seconds for mobile, 10 for desktop
 })
 
 // Request interceptor to add user email header for MVP mode
 api.interceptors.request.use(
   (config) => {
+    // Add mobile detection header
+    config.headers['X-Device-Type'] = isMobile ? 'mobile' : 'desktop';
+    
     // Add user email to headers for MVP mode authentication
     const userData = localStorage.getItem('user')
     if (userData) {
@@ -30,26 +38,45 @@ api.interceptors.request.use(
         console.error('Error parsing user data:', error)
       }
     }
+    
+    console.log('🔍 API Request:', {
+      url: config.url,
+      method: config.method,
+      device: isMobile ? 'mobile' : 'desktop',
+      hasUserEmail: !!config.headers['X-User-Email']
+    })
+    
     return config
   },
   (error) => {
+    console.error('❌ Request Error:', error)
     return Promise.reject(error)
   }
 )
 
 // Response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ API Response:', {
+      url: response.config.url,
+      status: response.status,
+      device: isMobile ? 'mobile' : 'desktop'
+    })
+    return response
+  },
   (error) => {
-    console.error('API Error:', {
+    console.error('❌ API Error:', {
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
       message: error.message,
+      code: error.code,
+      device: isMobile ? 'mobile' : 'desktop',
       config: {
         url: error.config?.url,
         method: error.config?.method,
-        baseURL: error.config?.baseURL
+        baseURL: error.config?.baseURL,
+        timeout: error.config?.timeout
       }
     })
 
@@ -61,11 +88,15 @@ api.interceptors.response.use(
     
     // Enhanced error handling for mobile
     if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-      error.message = 'Network error. Please check your internet connection.'
+      error.message = 'Network error. Please check your internet connection and try again.'
     } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      error.message = 'Request timed out. Please try again.'
+      error.message = 'Request timed out. Please check your connection and try again.'
     } else if (error.response?.status === 0) {
-      error.message = 'Unable to connect to server. Please check your connection.'
+      error.message = 'Unable to connect to server. Please check your connection and try again.'
+    } else if (error.response?.status === 500) {
+      error.message = 'Server error. Please try again in a few moments.'
+    } else if (error.response?.status === 404) {
+      error.message = 'Service not found. Please try again later.'
     }
     
     return Promise.reject(error)
