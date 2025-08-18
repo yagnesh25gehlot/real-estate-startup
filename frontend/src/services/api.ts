@@ -60,7 +60,7 @@ api.interceptors.response.use(
     console.log('✅ API Response:', {
       url: response.config.url,
       status: response.status,
-      device: deviceType
+      device: isMobile ? 'mobile' : 'desktop'
     })
     return response
   },
@@ -71,7 +71,7 @@ api.interceptors.response.use(
       data: error.response?.data,
       message: error.message,
       code: error.code,
-      device: deviceType,
+      device: isMobile ? 'mobile' : 'desktop',
       config: {
         url: error.config?.url,
         method: error.config?.method,
