@@ -1,112 +1,178 @@
 import express from 'express';
-import { authMiddleware } from '../auth/middleware';
+import { body, query } from 'express-validator';
 import { NotificationService } from './service';
+import { WhatsAppService } from '../../services/whatsappService';
 
 const router = express.Router();
 
-// Get all admin notifications
-router.get('/', authMiddleware(['ADMIN']), async (req, res, next) => {
+// Get all notifications (admin only)
+router.get('/', async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, type, read, date } = req.query;
-    
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
     const filters = {
-      search: search as string,
-      type: type as string,
-      read: read as string,
-      date: date as string,
+      type: req.query.type as string,
+      read: req.query.read as string,
+      search: req.query.search as string,
+      date: req.query.date as string,
     };
 
-    const result = await NotificationService.getAdminNotifications(
-      parseInt(page as string),
-      parseInt(limit as string),
-      filters
-    );
-    res.json({ success: true, data: result });
+    const result = await NotificationService.getAdminNotifications(page, limit, filters);
+    res.json({
+      success: true,
+      data: result,
+    });
   } catch (error) {
-    next(error);
+    console.error('Failed to fetch notifications:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch notifications',
+    });
+  }
+});
+
+// Get unread count
+router.get('/unread-count', async (req, res) => {
+  try {
+    const count = await NotificationService.getUnreadCount();
+    res.json({
+      success: true,
+      data: { count },
+    });
+  } catch (error) {
+    console.error('Failed to fetch unread count:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch unread count',
+    });
   }
 });
 
 // Mark notification as read
-router.put('/:id/read', authMiddleware(['ADMIN']), async (req, res, next) => {
+router.put('/:id/read', async (req, res) => {
   try {
     const { id } = req.params;
-    const notification = await NotificationService.markAsRead(id);
-    res.json({ success: true, data: notification });
+    await NotificationService.markAsRead(id);
+    res.json({
+      success: true,
+      message: 'Notification marked as read',
+    });
   } catch (error) {
-    next(error);
+    console.error('Failed to mark notification as read:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to mark notification as read',
+    });
   }
 });
 
-// Mark all notifications as read for admin
-router.put('/mark-all-read', authMiddleware(['ADMIN']), async (req, res, next) => {
+// Mark all notifications as read
+router.put('/mark-all-read', async (req, res) => {
   try {
-    // For admin, mark all notifications as read (no specific user)
-    const result = await NotificationService.markAllAsRead('admin');
-    res.json({ success: true, data: result });
+    await NotificationService.markAllAsRead();
+    res.json({
+      success: true,
+      message: 'All notifications marked as read',
+    });
   } catch (error) {
-    next(error);
+    console.error('Failed to mark all notifications as read:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to mark all notifications as read',
+    });
   }
 });
 
-// Get unread count for admin
-router.get('/unread-count', authMiddleware(['ADMIN']), async (req, res, next) => {
+// Delete notification
+router.delete('/:id', async (req, res) => {
   try {
-    // For admin, get count of all unread notifications
-    const count = await NotificationService.getUnreadCount('admin');
-    res.json({ success: true, data: { count } });
+    const { id } = req.params;
+    await NotificationService.deleteNotification(id);
+    res.json({
+      success: true,
+      message: 'Notification deleted',
+    });
   } catch (error) {
-    next(error);
+    console.error('Failed to delete notification:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete notification',
+    });
   }
 });
 
-// Get user notifications
-router.get('/user/:userId', authMiddleware(['USER', 'DEALER', 'ADMIN']), async (req, res, next) => {
+// Test WhatsApp notification endpoint
+router.post('/test-whatsapp', async (req, res) => {
   try {
-    const { userId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
+    const { message, type } = req.body;
     
-    const result = await NotificationService.getUserNotifications(
-      userId,
-      parseInt(page as string),
-      parseInt(limit as string)
-    );
-    res.json({ success: true, data: result });
+    const testNotification = {
+      type: type || 'TEST',
+      title: 'Test Notification',
+      message: message || 'This is a test notification from RealtyTopper',
+      data: { test: true }
+    };
+
+    const success = await WhatsAppService.sendNotification(testNotification);
+    
+    res.json({
+      success: true,
+      message: 'WhatsApp test notification sent',
+      whatsappSuccess: success,
+      notification: testNotification
+    });
   } catch (error) {
-    next(error);
+    console.error('Failed to send WhatsApp test notification:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send WhatsApp test notification',
+    });
   }
 });
 
-// Mark all notifications as read for a user
-router.put('/user/:userId/mark-all-read', authMiddleware(['USER', 'DEALER', 'ADMIN']), async (req, res, next) => {
+// Send custom WhatsApp message
+router.post('/send-whatsapp', [
+  body('message').notEmpty().withMessage('Message is required'),
+  body('type').optional().isString().withMessage('Type must be a string'),
+], async (req, res) => {
   try {
-    const { userId } = req.params;
-    const result = await NotificationService.markAllAsRead(userId);
-    res.json({ success: true, data: result });
+    const { message, type } = req.body;
+    
+    const success = await WhatsAppService.sendTextMessage(message);
+    
+    res.json({
+      success: true,
+      message: 'WhatsApp message sent',
+      whatsappSuccess: success,
+      sentMessage: message
+    });
   } catch (error) {
-    next(error);
+    console.error('Failed to send WhatsApp message:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send WhatsApp message',
+    });
   }
 });
 
-// Get unread count for a user
-router.get('/user/:userId/unread-count', authMiddleware(['USER', 'DEALER', 'ADMIN']), async (req, res, next) => {
+// Get WhatsApp configuration status
+router.get('/whatsapp-status', async (req, res) => {
   try {
-    const { userId } = req.params;
-    const count = await NotificationService.getUnreadCount(userId);
-    res.json({ success: true, data: { count } });
+    const status = WhatsAppService.getConfigurationStatus();
+    
+    res.json({
+      success: true,
+      data: status,
+      message: status.cloudAPI 
+        ? 'WhatsApp Cloud API is configured and ready to send messages automatically'
+        : 'WhatsApp Cloud API is not configured. Messages will be generated as URLs for manual sending.'
+    });
   } catch (error) {
-    next(error);
-  }
-});
-
-// Delete a notification
-router.delete('/:id', authMiddleware(['ADMIN']), async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const result = await NotificationService.deleteNotification(id);
-    res.json({ success: true, data: result });
-  } catch (error) {
-    next(error);
+    console.error('Failed to get WhatsApp status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get WhatsApp status',
+    });
   }
 });
 

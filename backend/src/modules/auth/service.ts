@@ -5,6 +5,7 @@ import { GoogleAuthPayload, LoginResponse, DealerSignupRequest, LoginRequest, Ro
 import { createError } from '../../utils/errorHandler';
 import { sendDealerApprovalEmail } from '../../mail/notifications';
 import { NotificationService } from '../notification/service';
+import { WhatsAppService } from '../../services/whatsappService';
 
 const prisma = new PrismaClient();
 
@@ -151,6 +152,9 @@ export class AuthService {
           title: 'New User Registration',
           message: `${newUser.name} (${newUser.email}) has registered as a new user`
         });
+
+        // Send WhatsApp notification
+        await WhatsAppService.sendUserSignupNotification(newUser);
       } catch (notificationError) {
         // Log error but don't fail the signup
         if (process.env.NODE_ENV !== 'production') {

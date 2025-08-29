@@ -1,117 +1,148 @@
-import React, { useState } from 'react'
-import { Helmet } from 'react-helmet-async'
-import { useNavigate, Link } from 'react-router-dom'
-import { Building2, Mail, User, Lock, Eye, EyeOff, Phone, CreditCard, Upload, X } from 'lucide-react'
-import { authService, SignupData } from '../services/authService'
-import { useAuth } from '../contexts/AuthContext'
-import toast from 'react-hot-toast'
+import React, { useState } from "react";
+import { Helmet } from "react-helmet-async";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  Building2,
+  Mail,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  Phone,
+  CreditCard,
+  Upload,
+  X,
+} from "lucide-react";
+import { authService, SignupData } from "../services/authService";
+import { useAuth } from "../contexts/AuthContext";
+import toast from "react-hot-toast";
 
 const Signup = () => {
-  const navigate = useNavigate()
-  const { login } = useAuth()
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState<SignupData>({
-    email: '',
-    password: '',
-    name: '',
-    mobile: '',
-    aadhaar: '',
-    aadhaarImage: undefined
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [aadhaarPreview, setAadhaarPreview] = useState<string | null>(null)
+    email: "",
+    password: "",
+    name: "",
+    mobile: "",
+    aadhaar: "",
+    aadhaarImage: undefined,
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [aadhaarPreview, setAadhaarPreview] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleAadhaarImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('Image size should be less than 5MB')
-        return
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        toast.error("Image size should be less than 5MB");
+        return;
       }
-      
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select a valid image file')
-        return
+
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select a valid image file");
+        return;
       }
-      
-      setFormData(prev => ({ ...prev, aadhaarImage: file }))
-      const reader = new FileReader()
+
+      setFormData((prev) => ({ ...prev, aadhaarImage: file }));
+      const reader = new FileReader();
       reader.onload = (e) => {
-        setAadhaarPreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+        setAadhaarPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const removeAadhaarImage = () => {
-    setFormData(prev => ({ ...prev, aadhaarImage: undefined }))
-    setAadhaarPreview(null)
-  }
+    setFormData((prev) => ({ ...prev, aadhaarImage: undefined }));
+    setAadhaarPreview(null);
+  };
 
   const validateForm = (): boolean => {
+    const errors: string[] = [];
+
     // Basic validation
-    if (!formData.name.trim()) {
-      toast.error('Name is required')
-      return false
+    if (!formData.name?.trim()) {
+      errors.push("Full name is required");
     }
 
-    if (!authService.validateEmail(formData.email)) {
-      toast.error('Please enter a valid email address')
-      return false
+    if (!formData.email?.trim()) {
+      errors.push("Email address is required");
+    } else if (!authService.validateEmail(formData.email)) {
+      errors.push("Please enter a valid email address");
     }
 
-    if (!authService.validatePassword(formData.password)) {
-      toast.error('Password must be at least 8 characters with lowercase, uppercase, number, and special character')
-      return false
+    if (!formData.password?.trim()) {
+      errors.push("Password is required");
+    } else if (!authService.validatePassword(formData.password)) {
+      errors.push(
+        "Password must be at least 8 characters with lowercase, uppercase, number, and special character"
+      );
     }
 
-    if (!authService.validateMobile(formData.mobile)) {
-      toast.error('Please enter a valid 10-digit mobile number')
-      return false
+    if (!formData.mobile?.trim()) {
+      errors.push("Mobile number is required");
+    } else if (!authService.validateMobile(formData.mobile)) {
+      errors.push("Please enter a valid 10-digit mobile number");
     }
 
-    if (!authService.validateAadhaar(formData.aadhaar)) {
-      toast.error('Please enter a valid 12-digit Aadhaar number')
-      return false
+    if (!formData.aadhaar?.trim()) {
+      errors.push("Aadhaar number is required");
+    } else if (!authService.validateAadhaar(formData.aadhaar)) {
+      errors.push("Please enter a valid 12-digit Aadhaar number");
     }
 
-    return true
-  }
+    if (errors.length > 0) {
+      const errorMessage =
+        errors.length === 1
+          ? errors[0]
+          : `Please fix the following issues:\n• ${errors.join("\n• ")}`;
+      toast.error(errorMessage);
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!validateForm()) {
-      return
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
-                               try {
-              const response = await authService.signup(formData)
-              
-              // Use AuthContext login method which handles navigation
-              await login(response.user)
-              
-              toast.success('Account created successfully!')
+    try {
+      const response = await authService.signup(formData);
+
+      // Use AuthContext login method which handles navigation
+      await login(response.user);
+
+      toast.success("Account created successfully!");
     } catch (error: any) {
-      console.error('Signup error:', error)
-      toast.error(error.message || 'Signup failed')
+      console.error("Signup error:", error);
+      toast.error(error.message || "Signup failed");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <>
       <Helmet>
         <title>Sign Up - Property Platform</title>
-        <meta name="description" content="Create your account on Property Platform" />
+        <meta
+          name="description"
+          content="Create your account on Property Platform"
+        />
       </Helmet>
 
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -189,7 +220,9 @@ const Signup = () => {
                     maxLength={10}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Required for account verification</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Required for account verification
+                </p>
               </div>
 
               <div>
@@ -201,7 +234,7 @@ const Signup = () => {
                   <input
                     id="password"
                     name="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
                     required
                     value={formData.password}
@@ -214,10 +247,17 @@ const Signup = () => {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters with lowercase, uppercase, number, and special character</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Must be at least 8 characters with lowercase, uppercase,
+                  number, and special character
+                </p>
               </div>
 
               <div>
@@ -238,7 +278,9 @@ const Signup = () => {
                     maxLength={12}
                   />
                 </div>
-                                  <p className="text-xs text-gray-500 mt-1">Required for verification</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Required for verification
+                </p>
               </div>
 
               <div>
@@ -248,9 +290,9 @@ const Signup = () => {
                 <div className="space-y-3">
                   {aadhaarPreview ? (
                     <div className="relative">
-                      <img 
-                        src={aadhaarPreview} 
-                        alt="Aadhaar preview" 
+                      <img
+                        src={aadhaarPreview}
+                        alt="Aadhaar preview"
                         className="w-full h-32 object-cover rounded-lg border border-gray-300"
                       />
                       <button
@@ -273,16 +315,20 @@ const Signup = () => {
                       />
                       <label htmlFor="aadhaarImage" className="cursor-pointer">
                         <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600">Click to upload Aadhaar card image</p>
-                        <p className="text-xs text-gray-500 mt-1">Max size: 5MB</p>
+                        <p className="text-sm text-gray-600">
+                          Click to upload Aadhaar card image
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Max size: 5MB
+                        </p>
                       </label>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Upload a clear image of your Aadhaar card for verification</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Upload a clear image of your Aadhaar card for verification
+                </p>
               </div>
-
-
 
               <div>
                 <button
@@ -290,7 +336,7 @@ const Signup = () => {
                   disabled={isLoading}
                   className="w-full btn btn-primary disabled:opacity-50"
                 >
-                  {isLoading ? 'Creating account...' : 'Create account'}
+                  {isLoading ? "Creating account..." : "Create account"}
                 </button>
               </div>
             </form>
@@ -298,8 +344,11 @@ const Signup = () => {
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="font-medium text-primary-600 hover:text-primary-500"
+              >
                 Sign in
               </Link>
             </p>
@@ -307,8 +356,11 @@ const Signup = () => {
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Want to earn commissions?{' '}
-              <Link to="/dealer-signup" className="font-medium text-primary-600 hover:text-primary-500">
+              Want to earn commissions?{" "}
+              <Link
+                to="/dealer-signup"
+                className="font-medium text-primary-600 hover:text-primary-500"
+              >
                 Become a dealer
               </Link>
             </p>
@@ -316,7 +368,7 @@ const Signup = () => {
         </div>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default Signup
+export default Signup;

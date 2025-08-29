@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { createError } from '../../utils/errorHandler';
+import { WhatsAppService } from '../../services/whatsappService';
 
 const prisma = new PrismaClient();
 
@@ -28,6 +29,20 @@ export class NotificationService {
         message: data.message,
         timestamp: new Date().toISOString(),
       });
+
+      // Send WhatsApp notification
+      try {
+        await WhatsAppService.sendNotification({
+          type: data.type,
+          title: data.title,
+          message: data.message,
+          data: data,
+        });
+        console.log('📱 WhatsApp notification sent successfully');
+      } catch (error) {
+        console.error('❌ Failed to send WhatsApp notification:', error);
+        // Don't throw error, continue with normal flow
+      }
 
       return notification;
     } catch (error) {

@@ -49,12 +49,48 @@ model Property {
   title       String
   description String
   type        String   // HOUSE, PLOT, etc.
+  action      String   @default("SELL") // RENT, LEASE, SELL
   location    String?  // City/Location (optional)
   address     String   // Detailed address (required)
   latitude    Float?   // GPS coordinates
   longitude   Float?   // GPS coordinates
-  price       Float
+  price       Float?
+  area        Float?   // Area in square feet
+  dimensions  String?  // Property dimensions
+  specifications String? // Other specifications
+  availabilityDate DateTime? // From when property is available
+  listedBy    String?  // Owner, Agent, Other
   status      String   @default("FREE") // FREE, BOOKED, SOLD
+  
+  // Property-specific fields
+  bhk         Int?     // For flats
+  parkingAvailable Boolean @default(false)
+  numberOfRooms Int?   // For houses
+  furnishingStatus String? // Furnished, Semi-Furnished, Unfurnished
+  amenities   String?  // Amenities description
+  
+  // Rent/Lease specific fields
+  perMonthCharges Float? // For rent
+  noticePeriod   Int?    // Notice period in months
+  allowedTenants String? // Bachelor, Family, Anyone
+  leaseDuration  Int?    // Lease duration in months
+  
+  // Document uploads
+  electricityBillImage String? // Electricity bill image URL
+  waterBillImage      String? // Water bill image URL
+  registryImage       String? // Registry/Patta image URL
+  otherDocuments      String? // Other documents URLs as JSON string
+  listingFeeProof     String? // Listing fee payment proof URL
+  
+  // New fields
+  registeredAs        String? // OWNER, DEALER, OTHER
+  registeredAsDescription String? // Description when registeredAs is OTHER
+  additionalAmenities String? // Additional amenities description
+  mobileNumber        String? // Contact mobile number
+  
+  // Booking charges calculation
+  bookingCharges      Float?  // Calculated booking charges
+  
   mediaUrls   String   // S3 paths as JSON string
   owner       User     @relation(fields: [ownerId], references: [id])
   ownerId     String

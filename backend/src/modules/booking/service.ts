@@ -3,6 +3,7 @@ import { createError } from '../../utils/errorHandler';
 import { PaymentService } from '../../utils/paymentService';
 import { sendManualBookingSubmittedEmail } from '../../mail/notifications';
 import { NotificationService } from '../notification/service';
+import { WhatsAppService } from '../../services/whatsappService';
 
 const prisma = new PrismaClient();
 
@@ -124,6 +125,9 @@ export class BookingService {
         title: 'New Booking Request',
         message: `${booking.user.name || booking.user.email} requested booking for ${booking.property.title} in ${booking.property.location}`
       });
+
+      // Send WhatsApp notification
+      await WhatsAppService.sendBookingNotification(booking);
       
       // Also log to console for immediate visibility
       console.log('🎯 NEW BOOKING CREATED - Check admin dashboard!');

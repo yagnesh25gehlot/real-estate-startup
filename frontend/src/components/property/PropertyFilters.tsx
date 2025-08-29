@@ -1,55 +1,59 @@
-import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
-import { propertiesApi } from '../../services/api'
-import { useAuth } from '../../contexts/AuthContext'
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import { propertiesApi } from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface PropertyFiltersProps {
   filters: {
-    type: string
-    location: string
-    minPrice: string
-    maxPrice: string
-    status: string
-  }
-  onFiltersChange: (filters: any) => void
+    action: string;
+    type: string;
+    location: string;
+    minPrice: string;
+    maxPrice: string;
+    status: string;
+  };
+  onFiltersChange: (filters: any) => void;
 }
 
-const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'ADMIN'
-  
-  const [typesData, setTypesData] = useState<any>(null)
-  const [locationsData, setLocationsData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+const PropertyFilters = ({
+  filters,
+  onFiltersChange,
+}: PropertyFiltersProps) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
+
+  const [typesData, setTypesData] = useState<any>(null);
+  const [locationsData, setLocationsData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true)
-        console.log('Fetching property types and locations...')
-        
+        setLoading(true);
+        console.log("Fetching property types and locations...");
+
         const [typesResponse, locationsResponse] = await Promise.all([
           propertiesApi.getTypes(),
-          propertiesApi.getLocations()
-        ])
-        
-        console.log('Types response:', typesResponse.data)
-        console.log('Locations response:', locationsResponse.data)
-        
-        setTypesData(typesResponse.data.data) // Fix: access response.data.data
-        setLocationsData(locationsResponse.data.data) // Fix: access response.data.data
+          propertiesApi.getLocations(),
+        ]);
+
+        console.log("Types response:", typesResponse.data);
+        console.log("Locations response:", locationsResponse.data);
+
+        setTypesData(typesResponse.data.data); // Fix: access response.data.data
+        setLocationsData(locationsResponse.data.data); // Fix: access response.data.data
       } catch (error) {
-        console.error('Failed to fetch filter data:', error)
+        console.error("Failed to fetch filter data:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
-  const types = typesData || []
-  const locations = locationsData || []
+  const types = typesData || [];
+  const locations = locationsData || [];
 
   if (loading) {
     return (
@@ -59,20 +63,21 @@ const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => 
           <p className="mt-4 text-gray-600">Loading filters...</p>
         </div>
       </div>
-    )
+    );
   }
 
   const clearFilters = () => {
     onFiltersChange({
-      type: '',
-      location: '',
-      minPrice: '',
-      maxPrice: '',
-      status: '',
-    })
-  }
+      action: "",
+      type: "",
+      location: "",
+      minPrice: "",
+      maxPrice: "",
+      status: "",
+    });
+  };
 
-  const hasActiveFilters = Object.values(filters).some(value => value !== '')
+  const hasActiveFilters = Object.values(filters).some((value) => value !== "");
 
   return (
     <div className="card">
@@ -89,13 +94,32 @@ const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => 
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        {/* Action Type */}
+        <div className="form-group">
+          <label className="label">Action</label>
+          <select
+            value={filters.action}
+            onChange={(e) =>
+              onFiltersChange({ ...filters, action: e.target.value })
+            }
+            className="input"
+          >
+            <option value="">All Actions</option>
+            <option value="SELL">Buy</option>
+            <option value="RENT">Rent</option>
+            <option value="LEASE">Lease</option>
+          </select>
+        </div>
+
         {/* Property Type */}
         <div className="form-group">
           <label className="label">Property Type</label>
           <select
             value={filters.type}
-            onChange={(e) => onFiltersChange({ ...filters, type: e.target.value })}
+            onChange={(e) =>
+              onFiltersChange({ ...filters, type: e.target.value })
+            }
             className="input"
           >
             <option value="">All Types</option>
@@ -112,7 +136,9 @@ const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => 
           <label className="label">Location</label>
           <select
             value={filters.location}
-            onChange={(e) => onFiltersChange({ ...filters, location: e.target.value })}
+            onChange={(e) =>
+              onFiltersChange({ ...filters, location: e.target.value })
+            }
             className="input"
           >
             <option value="">All Locations</option>
@@ -133,8 +159,8 @@ const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => 
             min="0"
             value={filters.minPrice}
             onChange={(e) => {
-              const newFilters = { ...filters, minPrice: e.target.value }
-              onFiltersChange(newFilters)
+              const newFilters = { ...filters, minPrice: e.target.value };
+              onFiltersChange(newFilters);
             }}
             className="input text-gray-900"
           />
@@ -149,8 +175,8 @@ const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => 
             min="0"
             value={filters.maxPrice}
             onChange={(e) => {
-              const newFilters = { ...filters, maxPrice: e.target.value }
-              onFiltersChange(newFilters)
+              const newFilters = { ...filters, maxPrice: e.target.value };
+              onFiltersChange(newFilters);
             }}
             className="input text-gray-900"
           />
@@ -162,7 +188,9 @@ const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => 
             <label className="label">Status</label>
             <select
               value={filters.status}
-              onChange={(e) => onFiltersChange({ ...filters, status: e.target.value })}
+              onChange={(e) =>
+                onFiltersChange({ ...filters, status: e.target.value })
+              }
               className="input"
             >
               <option value="">All Status</option>
@@ -173,67 +201,75 @@ const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => 
           </div>
         )}
       </div>
-      
+
       {/* Quick Filter Buttons */}
       <div className="mt-4 pt-4 border-t border-gray-200">
-        <h4 className="text-sm font-medium text-gray-700 mb-3">Quick Filters</h4>
+        <h4 className="text-sm font-medium text-gray-700 mb-3">
+          Quick Filters
+        </h4>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => onFiltersChange({ ...filters, type: 'HOUSE' })}
+            onClick={() => onFiltersChange({ ...filters, type: "HOUSE" })}
             className={`px-3 py-1 rounded-full text-sm border ${
-              filters.type === 'HOUSE' 
-                ? 'bg-primary-600 text-white border-primary-600' 
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              filters.type === "HOUSE"
+                ? "bg-primary-600 text-white border-primary-600"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             }`}
           >
             Houses
           </button>
           <button
-            onClick={() => onFiltersChange({ ...filters, type: 'APARTMENT' })}
+            onClick={() => onFiltersChange({ ...filters, type: "APARTMENT" })}
             className={`px-3 py-1 rounded-full text-sm border ${
-              filters.type === 'APARTMENT' 
-                ? 'bg-primary-600 text-white border-primary-600' 
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              filters.type === "APARTMENT"
+                ? "bg-primary-600 text-white border-primary-600"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             }`}
           >
             Apartments
           </button>
           <button
-            onClick={() => onFiltersChange({ ...filters, type: 'COMMERCIAL' })}
+            onClick={() => onFiltersChange({ ...filters, type: "COMMERCIAL" })}
             className={`px-3 py-1 rounded-full text-sm border ${
-              filters.type === 'COMMERCIAL' 
-                ? 'bg-primary-600 text-white border-primary-600' 
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              filters.type === "COMMERCIAL"
+                ? "bg-primary-600 text-white border-primary-600"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             }`}
           >
             Commercial
           </button>
           <button
-            onClick={() => onFiltersChange({ ...filters, status: 'FREE' })}
+            onClick={() => onFiltersChange({ ...filters, status: "FREE" })}
             className={`px-3 py-1 rounded-full text-sm border ${
-              filters.status === 'FREE' 
-                ? 'bg-green-600 text-white border-green-600' 
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              filters.status === "FREE"
+                ? "bg-green-600 text-white border-green-600"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             }`}
           >
             Available
           </button>
           <button
-            onClick={() => onFiltersChange({ ...filters, minPrice: '500000', maxPrice: '1000000' })}
+            onClick={() =>
+              onFiltersChange({
+                ...filters,
+                minPrice: "500000",
+                maxPrice: "1000000",
+              })
+            }
             className={`px-3 py-1 rounded-full text-sm border ${
-              filters.minPrice === '500000' && filters.maxPrice === '1000000'
-                ? 'bg-primary-600 text-white border-primary-600' 
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              filters.minPrice === "500000" && filters.maxPrice === "1000000"
+                ? "bg-primary-600 text-white border-primary-600"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             }`}
           >
             ₹5L - ₹10L
           </button>
           <button
-            onClick={() => onFiltersChange({ ...filters, minPrice: '1000000' })}
+            onClick={() => onFiltersChange({ ...filters, minPrice: "1000000" })}
             className={`px-3 py-1 rounded-full text-sm border ${
-              filters.minPrice === '1000000'
-                ? 'bg-primary-600 text-white border-primary-600' 
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              filters.minPrice === "1000000"
+                ? "bg-primary-600 text-white border-primary-600"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             }`}
           >
             ₹10L+
@@ -241,7 +277,7 @@ const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => 
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default PropertyFilters 
+export default PropertyFilters;

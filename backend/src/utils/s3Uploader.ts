@@ -12,9 +12,18 @@ if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && proces
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     region: process.env.AWS_REGION,
+    httpOptions: {
+      timeout: 300000, // 5 minutes timeout for S3 operations
+      connectTimeout: 60000, // 1 minute connection timeout
+    },
   });
   
-  s3 = new AWS.S3();
+  s3 = new AWS.S3({
+    httpOptions: {
+      timeout: 300000, // 5 minutes timeout for S3 operations
+      connectTimeout: 60000, // 1 minute connection timeout
+    },
+  });
   BUCKET_NAME = process.env.AWS_S3_BUCKET;
 }
 
@@ -69,6 +78,7 @@ export class S3Uploader {
 
       if (s3 && BUCKET_NAME) {
         try {
+          console.log(`📤 Uploading file to S3: ${file.originalname} (${file.size} bytes)`);
           // Upload to S3
           const result = await s3.upload({
             Bucket: BUCKET_NAME,
@@ -82,11 +92,13 @@ export class S3Uploader {
             }
           }).promise();
 
+          console.log(`✅ File uploaded to S3 successfully: ${result.Location}`);
           return {
             url: result.Location,
             key: result.Key,
           };
         } catch (s3Error) {
+          console.error('❌ S3 upload failed, falling back to local storage:', s3Error);
           // Fallback to local storage if S3 fails
           return await this.uploadFileLocally(file, folder);
         }
@@ -96,6 +108,48 @@ export class S3Uploader {
       }
     } catch (error) {
       throw createError('File upload failed', 500);
+    }
+  }
+
+  static async uploadDocument(file: Express.Multer.File, folder: string = 'documents'): Promise<UploadResult> {
+    try {
+      // Validate document before upload
+      this.validateDocument(file);
+
+      const key = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
+
+      if (s3 && BUCKET_NAME) {
+        try {
+          console.log(`📤 Uploading document to S3: ${file.originalname} (${file.size} bytes)`);
+          // Upload to S3
+          const result = await s3.upload({
+            Bucket: BUCKET_NAME,
+            Key: key,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+            ACL: 'public-read',
+            Metadata: {
+              originalName: file.originalname,
+              uploadedAt: new Date().toISOString(),
+            }
+          }).promise();
+
+          console.log(`✅ Document uploaded to S3 successfully: ${result.Location}`);
+          return {
+            url: result.Location,
+            key: result.Key,
+          };
+        } catch (s3Error) {
+          console.error('❌ S3 upload failed, falling back to local storage:', s3Error);
+          // Fallback to local storage if S3 fails
+          return await this.uploadFileLocally(file, folder);
+        }
+      } else {
+        // Fallback to local storage
+        return await this.uploadFileLocally(file, folder);
+      }
+    } catch (error) {
+      throw createError('Document upload failed', 500);
     }
   }
 
@@ -125,8 +179,11 @@ export class S3Uploader {
   }
 
   static async uploadMultipleFiles(files: Express.Multer.File[], folder: string = 'general'): Promise<UploadResult[]> {
+    console.log(`📤 Starting upload of ${files.length} files to folder: ${folder}`);
     const uploadPromises = files.map(file => this.uploadFile(file, folder));
-    return Promise.all(uploadPromises);
+    const results = await Promise.all(uploadPromises);
+    console.log(`✅ Successfully uploaded ${results.length} files`);
+    return results;
   }
 
   static async deleteFile(key: string): Promise<void> {

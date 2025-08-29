@@ -43,8 +43,8 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Mobile-specific timeout settings
-  timeout: isMobile ? 30000 : 15000, // 30 seconds for mobile, 15 for desktop
+  // Increased timeout for file uploads
+  timeout: isMobile ? 120000 : 60000, // 2 minutes for mobile, 1 minute for desktop
 })
 
 // Request interceptor to add user email header for MVP mode

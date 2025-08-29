@@ -27,6 +27,19 @@ const PORT = config.PORT;
 // Trust Railway proxy
 app.set('trust proxy', 1);
 
+// Increase timeout for file uploads
+app.use((req, res, next) => {
+  // Set longer timeout for file upload requests
+  if (req.path.includes('/api/properties') && req.method === 'POST') {
+    req.setTimeout(300000); // 5 minutes for property creation with files
+    res.setTimeout(300000);
+  } else {
+    req.setTimeout(60000); // 1 minute for other requests
+    res.setTimeout(60000);
+  }
+  next();
+});
+
 // Enhanced security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -62,7 +75,7 @@ const allowedOrigins = config.isProduction
       'https://www.realtytopper.com',
       'https://m.realtytopper.com' // Mobile subdomain support
     ].filter(Boolean)
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174', 'http://127.0.0.1:5175', 'http://127.0.0.1:5176', null];
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5178', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174', 'http://127.0.0.1:5175', 'http://127.0.0.1:5176', 'http://127.0.0.1:5177', 'http://127.0.0.1:5178', null];
 
 app.use(cors({
   origin: (origin, callback) => {

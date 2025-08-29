@@ -33,7 +33,7 @@ export const authMiddleware = (allowedRoles?: string[]) => {
         console.log('🔍 Auth middleware - No user found from header, using admin user');
         realUser = await prisma.user.findFirst({
           where: { 
-            email: 'bussinessstatupwork@gmail.com' // Use the admin user for MVP testing
+            email: 'bussiness.startup.work@gmail.com' // Use the admin user for MVP testing
           },
           include: {
             dealer: true
@@ -110,7 +110,7 @@ export const optionalAuth = async (req: AuthenticatedRequest, res: Response, nex
     if (!realUser) {
       realUser = await prisma.user.findFirst({
         where: { 
-          email: 'bussinessstatupwork@gmail.com' // Use the admin user for MVP testing
+          email: 'bussiness.startup.work@gmail.com' // Use the admin user for MVP testing
         },
         include: {
           dealer: true
