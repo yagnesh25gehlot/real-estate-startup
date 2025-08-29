@@ -154,9 +154,20 @@ const PropertyDetail = () => {
     if (url.includes("example.com/mock-upload"))
       return "/placeholder-property.svg";
     if (url.startsWith("/uploads/")) {
-      const baseUrl = import.meta.env.PROD
-        ? window.location.origin
-        : import.meta.env.VITE_API_URL || "http://localhost:3001";
+      // Use the same logic as API configuration
+      const isProduction = import.meta.env.PROD;
+      const isLocal = import.meta.env.DEV;
+      
+      let baseUrl: string;
+      
+      if (isProduction) {
+        baseUrl = 'https://realtytopper.com';
+      } else if (isLocal) {
+        baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      } else {
+        baseUrl = import.meta.env.VITE_API_URL || 'https://realtytopper.com';
+      }
+      
       const fullUrl = `${baseUrl}${url}`;
       console.log("🔍 Generated image URL:", fullUrl);
       return encodeURI(fullUrl);

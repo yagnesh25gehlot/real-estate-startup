@@ -210,9 +210,20 @@ const AdminProperties = () => {
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder-property.svg";
     if (url.startsWith("/uploads/")) {
-      const baseUrl = import.meta.env.PROD
-        ? window.location.origin
-        : import.meta.env.VITE_API_URL || "http://localhost:3001";
+      // Use the same logic as API configuration
+      const isProduction = import.meta.env.PROD;
+      const isLocal = import.meta.env.DEV;
+      
+      let baseUrl: string;
+      
+      if (isProduction) {
+        baseUrl = 'https://realtytopper.com';
+      } else if (isLocal) {
+        baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      } else {
+        baseUrl = import.meta.env.VITE_API_URL || 'https://realtytopper.com';
+      }
+      
       return `${baseUrl}${url}`;
     }
     return url;
