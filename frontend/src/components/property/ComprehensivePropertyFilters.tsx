@@ -216,7 +216,7 @@ const ComprehensivePropertyFilters: React.FC<
         className="flex items-center justify-between w-full text-left font-medium text-gray-900 mb-2"
       >
         <div className="flex items-center gap-2">
-          {React.createElement(icon, { size: 20, color: "currentColor" })}
+          {React.createElement(icon, { size: 20 })}
           {title}
         </div>
         {activeSection === sectionId ? (
