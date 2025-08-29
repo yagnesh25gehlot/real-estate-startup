@@ -27,6 +27,7 @@ import TestInput from "./pages/TestInput";
 import TestAuth from "./pages/TestAuth";
 import TestLogin from "./pages/TestLogin";
 import TestWhatsApp from "./pages/TestWhatsApp";
+import TestTelegram from "./pages/TestTelegram";
 import ListProperty from "./pages/ListProperty";
 import TestSimple from "./pages/TestSimple";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -169,6 +170,7 @@ function App() {
           <Route path="test-auth" element={<TestAuth />} />
           <Route path="test-login" element={<TestLogin />} />
           <Route path="test-whatsapp" element={<TestWhatsApp />} />
+          <Route path="test-telegram" element={<TestTelegram />} />
         </Route>
       </Routes>
     </AuthProvider>

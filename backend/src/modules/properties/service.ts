@@ -3,6 +3,7 @@ import { createError } from '../../utils/errorHandler';
 import { S3Uploader } from '../../utils/s3Uploader';
 import { NotificationService } from '../notification/service';
 import { WhatsAppService } from '../../services/whatsappService';
+import { TelegramService } from '../../services/telegramService';
 import prisma from '../../config/database';
 
 export interface CreatePropertyData {
@@ -324,6 +325,9 @@ export class PropertyService {
 
           // Send WhatsApp notification
           await WhatsAppService.sendPropertyNotification(propertyWithIncludes, 'ADDED');
+
+          // Send Telegram notification
+          await TelegramService.sendPropertyNotification(propertyWithIncludes);
         }
       } catch (notificationError) {
         console.error('Failed to send property added notification:', notificationError);

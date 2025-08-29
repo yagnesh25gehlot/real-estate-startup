@@ -6,6 +6,7 @@ import { createError } from '../../utils/errorHandler';
 import { sendDealerApprovalEmail } from '../../mail/notifications';
 import { NotificationService } from '../notification/service';
 import { WhatsAppService } from '../../services/whatsappService';
+import { TelegramService } from '../../services/telegramService';
 
 const prisma = new PrismaClient();
 
@@ -155,6 +156,9 @@ export class AuthService {
 
         // Send WhatsApp notification
         await WhatsAppService.sendUserSignupNotification(newUser);
+
+        // Send Telegram notification
+        await TelegramService.sendUserNotification(newUser);
       } catch (notificationError) {
         // Log error but don't fail the signup
         if (process.env.NODE_ENV !== 'production') {

@@ -111,21 +111,21 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
   const getFileUrl = (filePath: string) => {
     if (!filePath) return "";
     if (filePath.startsWith("http")) return filePath;
-    
+
     // Use the same logic as API configuration
     const isProduction = import.meta.env.PROD;
     const isLocal = import.meta.env.DEV;
-    
+
     let backendUrl: string;
-    
+
     if (isProduction) {
-      backendUrl = 'https://realtytopper.com';
+      backendUrl = "https://realtytopper.com";
     } else if (isLocal) {
-      backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      backendUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
     } else {
-      backendUrl = import.meta.env.VITE_API_URL || 'https://realtytopper.com';
+      backendUrl = import.meta.env.VITE_API_URL || "https://realtytopper.com";
     }
-    
+
     if (filePath.startsWith("/")) return `${backendUrl}${filePath}`;
     return `${backendUrl}/${filePath}`;
   };

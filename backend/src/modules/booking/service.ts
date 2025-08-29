@@ -4,6 +4,7 @@ import { PaymentService } from '../../utils/paymentService';
 import { sendManualBookingSubmittedEmail } from '../../mail/notifications';
 import { NotificationService } from '../notification/service';
 import { WhatsAppService } from '../../services/whatsappService';
+import { TelegramService } from '../../services/telegramService';
 
 const prisma = new PrismaClient();
 
@@ -128,6 +129,9 @@ export class BookingService {
 
       // Send WhatsApp notification
       await WhatsAppService.sendBookingNotification(booking);
+
+      // Send Telegram notification
+      await TelegramService.sendBookingNotification(booking);
       
       // Also log to console for immediate visibility
       console.log('🎯 NEW BOOKING CREATED - Check admin dashboard!');

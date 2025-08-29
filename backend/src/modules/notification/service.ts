@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { createError } from '../../utils/errorHandler';
 import { WhatsAppService } from '../../services/whatsappService';
+import { TelegramService } from '../../services/telegramService';
 
 const prisma = new PrismaClient();
 
@@ -41,6 +42,20 @@ export class NotificationService {
         console.log('📱 WhatsApp notification sent successfully');
       } catch (error) {
         console.error('❌ Failed to send WhatsApp notification:', error);
+        // Don't throw error, continue with normal flow
+      }
+
+      // Send Telegram notification
+      try {
+        await TelegramService.sendNotification({
+          type: data.type as any,
+          title: data.title,
+          message: data.message,
+          details: data
+        });
+        console.log('📱 Telegram notification sent successfully');
+      } catch (error) {
+        console.error('❌ Failed to send Telegram notification:', error);
         // Don't throw error, continue with normal flow
       }
 

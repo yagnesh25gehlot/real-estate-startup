@@ -3,6 +3,7 @@ import { body, query } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
 import { NotificationService } from './service';
 import { WhatsAppService } from '../../services/whatsappService';
+import { TelegramService } from '../../services/telegramService';
 
 const prisma = new PrismaClient();
 
@@ -182,6 +183,56 @@ router.get('/whatsapp-status', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get WhatsApp status',
+    });
+  }
+});
+
+// Test Telegram notification endpoint
+router.post('/test-telegram', async (req, res) => {
+  try {
+    const { message, type } = req.body;
+    
+    const testNotification = {
+      type: (type || 'TEST') as any,
+      title: 'Test Telegram Notification',
+      message: message || 'This is a test notification from RealtyTopper via Telegram',
+      details: { test: true, timestamp: new Date().toISOString() }
+    };
+
+    const success = await TelegramService.sendNotification(testNotification);
+    
+    res.json({
+      success: true,
+      message: 'Telegram test notification sent',
+      telegramSuccess: success,
+      notification: testNotification
+    });
+  } catch (error) {
+    console.error('Failed to send Telegram test notification:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send Telegram test notification',
+    });
+  }
+});
+
+// Test Telegram connection
+router.get('/telegram-status', async (req, res) => {
+  try {
+    const success = await TelegramService.testConnection();
+    
+    res.json({
+      success: true,
+      telegramConnected: success,
+      message: success 
+        ? 'Telegram bot is connected and working correctly'
+        : 'Telegram bot connection failed. Check your bot token and group ID.'
+    });
+  } catch (error) {
+    console.error('Failed to test Telegram connection:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to test Telegram connection',
     });
   }
 });
