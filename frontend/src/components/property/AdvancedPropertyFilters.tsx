@@ -53,6 +53,11 @@ const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("basic");
 
+  // Helper function to render icons safely
+  const renderIcon = (IconComponent: any) => {
+    return <IconComponent className="w-5 h-5 text-blue-600" />;
+  };
+
   // Property types that support different features
   const propertyTypes = [
     { value: "", label: "Any Type", icon: Home },
@@ -112,7 +117,7 @@ const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = ({
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-blue-50 rounded-lg">
-          {React.createElement(icon, { size: 20 })}
+          {renderIcon(icon)}
         </div>
         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       </div>
@@ -192,9 +197,7 @@ const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = ({
                           : "text-gray-600 hover:bg-gray-50"
                       }`}
                     >
-                      {React.createElement(section.icon, {
-                        size: 16,
-                      })}
+                      {renderIcon(section.icon)}
                       <span className="text-sm font-medium">
                         {section.label}
                       </span>

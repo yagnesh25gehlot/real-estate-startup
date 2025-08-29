@@ -93,6 +93,11 @@ const ComprehensivePropertyFilters: React.FC<
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("basic");
 
+  // Helper function to render icons safely
+  const renderIcon = (IconComponent: any) => {
+    return <IconComponent className="w-5 h-5 text-current" />;
+  };
+
   // Property types
   const propertyTypes = [
     { value: "", label: "Any Type", icon: Home },
@@ -216,7 +221,7 @@ const ComprehensivePropertyFilters: React.FC<
         className="flex items-center justify-between w-full text-left font-medium text-gray-900 mb-2"
       >
         <div className="flex items-center gap-2">
-          {React.createElement(icon, { size: 20 })}
+          {renderIcon(icon)}
           {title}
         </div>
         {activeSection === sectionId ? (
