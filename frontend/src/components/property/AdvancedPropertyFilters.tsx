@@ -112,7 +112,7 @@ const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = ({
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-blue-50 rounded-lg">
-          {React.createElement(icon, { className: "w-5 h-5 text-blue-600" })}
+          {React.createElement(icon, { size: 20, className: "text-blue-600" })}
         </div>
         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       </div>
@@ -193,7 +193,8 @@ const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = ({
                       }`}
                     >
                       {React.createElement(section.icon, {
-                        className: "w-4 h-4",
+                        size: 16,
+                        className: "text-current",
                       })}
                       <span className="text-sm font-medium">
                         {section.label}
