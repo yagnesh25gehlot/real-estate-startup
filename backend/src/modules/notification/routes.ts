@@ -1,7 +1,10 @@
 import express from 'express';
 import { body, query } from 'express-validator';
+import { PrismaClient } from '@prisma/client';
 import { NotificationService } from './service';
 import { WhatsAppService } from '../../services/whatsappService';
+
+const prisma = new PrismaClient();
 
 const router = express.Router();
 
@@ -34,7 +37,10 @@ router.get('/', async (req, res) => {
 // Get unread count
 router.get('/unread-count', async (req, res) => {
   try {
-    const count = await NotificationService.getUnreadCount();
+    // For admin, get unread count for all notifications
+    const count = await prisma.notification.count({
+      where: { read: false },
+    });
     res.json({
       success: true,
       data: { count },
@@ -69,7 +75,11 @@ router.put('/:id/read', async (req, res) => {
 // Mark all notifications as read
 router.put('/mark-all-read', async (req, res) => {
   try {
-    await NotificationService.markAllAsRead();
+    // For admin, mark all notifications as read
+    await prisma.notification.updateMany({
+      where: { read: false },
+      data: { read: true },
+    });
     res.json({
       success: true,
       message: 'All notifications marked as read',

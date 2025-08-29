@@ -116,9 +116,7 @@ const AdvancedPropertyFilters: React.FC<AdvancedPropertyFiltersProps> = ({
   ) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-blue-50 rounded-lg">
-          {renderIcon(icon)}
-        </div>
+        <div className="p-2 bg-blue-50 rounded-lg">{renderIcon(icon)}</div>
         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       </div>
       {children}
