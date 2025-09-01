@@ -156,6 +156,13 @@ const PropertyDetail = () => {
     if (!url) return "/placeholder-property.svg";
     if (url.includes("example.com/mock-upload"))
       return "/placeholder-property.svg";
+    
+    // If it's already a full URL (S3 URL or external URL), return as-is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // If it's a local upload path, construct the full URL
     if (url.startsWith("/uploads/")) {
       // Use the same logic as API configuration
       const isProduction = import.meta.env.PROD;
