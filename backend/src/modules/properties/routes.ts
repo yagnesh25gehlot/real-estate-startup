@@ -277,7 +277,21 @@ router.post('/', [
   body('type').trim().notEmpty(),
   body('action').optional().isIn(['RENT', 'LEASE', 'SELL']),
   body('location').optional().trim().isLength({ max: 100 }),
-  body('address').trim().notEmpty().isLength({ min: 5, max: 500 }),
+  body('address').optional().trim().isLength({ min: 5, max: 500 }),
+  // New address fields validation
+  body('city').optional().trim().isLength({ min: 2, max: 100 }),
+  body('state').optional().trim().isLength({ min: 2, max: 100 }),
+  body('pincode').optional().trim().isLength({ min: 6, max: 10 }),
+  body('locality').optional().trim().isLength({ min: 2, max: 200 }),
+  body('street').optional().trim().isLength({ min: 2, max: 200 }),
+  body('landmark').optional().trim().isLength({ min: 2, max: 200 }),
+  body('subRegion').optional().trim().isLength({ min: 2, max: 200 }),
+  // Property type specific fields
+  body('flatNumber').optional().trim().isLength({ min: 1, max: 50 }),
+  body('buildingName').optional().trim().isLength({ min: 2, max: 200 }),
+  body('shopNumber').optional().trim().isLength({ min: 1, max: 50 }),
+  body('complexName').optional().trim().isLength({ min: 2, max: 200 }),
+  body('plotNumber').optional().trim().isLength({ min: 1, max: 50 }),
   body('latitude').optional().custom((value) => {
     if (value === '' || value === null || value === undefined) {
       return true; // Allow empty values
@@ -451,6 +465,20 @@ router.put('/:id', [
   body('action').optional().isIn(['RENT', 'LEASE', 'SELL']),
   body('location').optional().trim().notEmpty(),
   body('address').optional().trim().isLength({ max: 500 }),
+  // New address fields validation
+  body('city').optional().trim().isLength({ min: 2, max: 100 }),
+  body('state').optional().trim().isLength({ min: 2, max: 100 }),
+  body('pincode').optional().trim().isLength({ min: 6, max: 10 }),
+  body('locality').optional().trim().isLength({ min: 2, max: 200 }),
+  body('street').optional().trim().isLength({ min: 2, max: 200 }),
+  body('landmark').optional().trim().isLength({ min: 2, max: 200 }),
+  body('subRegion').optional().trim().isLength({ min: 2, max: 200 }),
+  // Property type specific fields
+  body('flatNumber').optional().trim().isLength({ min: 1, max: 50 }),
+  body('buildingName').optional().trim().isLength({ min: 2, max: 200 }),
+  body('shopNumber').optional().trim().isLength({ min: 1, max: 50 }),
+  body('complexName').optional().trim().isLength({ min: 2, max: 200 }),
+  body('plotNumber').optional().trim().isLength({ min: 1, max: 50 }),
   body('latitude').optional().custom((value) => {
     if (value === '' || value === null || value === undefined) {
       return true; // Allow empty values
