@@ -23,7 +23,9 @@ const AdminInquiries: React.FC = () => {
   const fetchInquiries = async () => {
     try {
       const response = await inquiriesApi.getAll();
-      setInquiries(response.data);
+      console.log("🔍 Inquiry response:", response);
+      // The API returns { success: true, data: inquiries[] }
+      setInquiries(response.data.data || []);
     } catch (error) {
       console.error("Error fetching inquiries:", error);
       showError(error, "inquiries");
