@@ -618,37 +618,7 @@ export class AuthService {
     }
   }
 
-  // Update profile picture
-  static async updateProfilePicture(userId: string, profilePicUrl: string): Promise<{ message: string }> {
-    try {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { profilePic: profilePicUrl },
-      });
 
-      return {
-        message: 'Profile picture updated successfully',
-      };
-    } catch (error) {
-      throw createError('Failed to update profile picture', 500);
-    }
-  }
-
-  // Update aadhaar image
-  static async updateAadhaarImage(userId: string, aadhaarImageUrl: string): Promise<{ message: string }> {
-    try {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { aadhaarImage: aadhaarImageUrl },
-      });
-
-      return {
-        message: 'Aadhaar image updated successfully',
-      };
-    } catch (error) {
-      throw createError('Failed to update aadhaar image', 500);
-    }
-  }
 
   static async getUserProfile(userId: string): Promise<any> {
     try {

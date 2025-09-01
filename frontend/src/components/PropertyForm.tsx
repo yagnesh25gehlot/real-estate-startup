@@ -584,20 +584,20 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
       const response = await propertiesApi.create(pendingPropertyData);
       console.log("✅ Property created successfully:", response);
 
-      toast.success("Property published successfully!");
+      showSuccess("Property published successfully!", "Success");
       setShowListingFeeModal(false);
       setPendingPropertyData(null);
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Error creating property with payment:", error);
-      toast.error(error.message || "Failed to publish property");
+      showError(error, "property");
     }
   };
 
   // Get current location function
   const getCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by this browser");
+      showError(new Error("Geolocation is not supported by this browser"), "location");
       return;
     }
 
