@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Phone, MessageCircle, Clock, Trash2 } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { inquiriesApi } from "../services/api";
+import { showError, showSuccess } from "../utils/errorNotifications";
 
 interface Inquiry {
   id: string;
@@ -21,21 +22,11 @@ const AdminInquiries: React.FC = () => {
 
   const fetchInquiries = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/inquiries", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setInquiries(data.data);
-      } else {
-        toast.error("Failed to fetch inquiries");
-      }
+      const response = await inquiriesApi.getAll();
+      setInquiries(response.data);
     } catch (error) {
       console.error("Error fetching inquiries:", error);
-      toast.error("Failed to fetch inquiries");
+      showError(error, "inquiries");
     } finally {
       setLoading(false);
     }
@@ -52,25 +43,12 @@ const AdminInquiries: React.FC = () => {
 
     setDeletingInquiry(id);
     try {
-      const response = await fetch(
-        `http://localhost:3001/api/inquiries/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Inquiry deleted successfully");
-        fetchInquiries(); // Refresh the list
-      } else {
-        toast.error("Failed to delete inquiry");
-      }
+      await inquiriesApi.delete(id);
+      showSuccess("Inquiry deleted successfully", "Inquiry Deleted");
+      fetchInquiries(); // Refresh the list
     } catch (error) {
       console.error("Error deleting inquiry:", error);
-      toast.error("Failed to delete inquiry");
+      showError(error, "inquiry");
     } finally {
       setDeletingInquiry(null);
     }
