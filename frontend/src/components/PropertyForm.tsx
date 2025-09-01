@@ -602,7 +602,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
     }
 
     setIsGettingLocation(true);
-    toast.loading("Getting your location...");
+    showWarning("Getting your location...", "Location");
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -635,7 +635,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
             location: city || prev.location,
           }));
 
-          toast.success("Location detected successfully!", { id: "location" });
+          showSuccess("Location detected successfully!", "Location");
         } catch (error) {
           console.error("Error getting address:", error);
           // Still save the coordinates even if address lookup fails
@@ -644,9 +644,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
             latitude: latitude.toString(),
             longitude: longitude.toString(),
           }));
-          toast.success("Coordinates saved! Please enter address manually.", {
-            id: "location",
-          });
+                    showSuccess("Coordinates saved! Please enter address manually.", "Location");
         } finally {
           setIsGettingLocation(false);
         }
@@ -670,7 +668,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
             errorMessage = "Could not get location automatically.";
         }
 
-        toast.error(errorMessage, { id: "location" });
+        showError(new Error(errorMessage), "location");
         setIsGettingLocation(false);
       }
     );
