@@ -13,6 +13,7 @@ import {
   showSuccess,
   showWarning,
 } from "../utils/errorNotifications";
+import { inquiriesApi } from "../services/api";
 
 interface QueryModalProps {
   isOpen: boolean;
@@ -50,31 +51,18 @@ const QueryModal: React.FC<QueryModalProps> = ({ isOpen, onClose }) => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("http://localhost:3001/api/inquiries", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: message.trim(),
-          mobileNumber: mobileNumber.trim(),
-        }),
+      await inquiriesApi.create({
+        message: message.trim(),
+        mobileNumber: mobileNumber.trim(),
       });
 
-      if (response.ok) {
-        showSuccess(
-          "Your inquiry has been sent successfully! We'll get back to you soon.",
-          "Inquiry Sent"
-        );
-        setMessage("");
-        setMobileNumber("");
-        onClose();
-      } else {
-        showError(
-          new Error("Failed to send inquiry. Please try again."),
-          "inquiry"
-        );
-      }
+      showSuccess(
+        "Your inquiry has been sent successfully! We'll get back to you soon.",
+        "Inquiry Sent"
+      );
+      setMessage("");
+      setMobileNumber("");
+      onClose();
     } catch (error) {
       console.error("Error sending inquiry:", error);
       showError(error, "inquiry");

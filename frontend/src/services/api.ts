@@ -279,4 +279,11 @@ export const notificationsApi = {
   markAllAsRead: () => api.put('/notifications/mark-all-read'),
   getUnreadCount: () => api.get('/notifications/unread-count'),
   cleanup: () => api.delete('/notifications/cleanup'),
+}
+
+export const inquiriesApi = {
+  create: (data: { message: string; mobileNumber: string }) => api.post('/inquiries', data),
+  getAll: (params?: any) => api.get('/inquiries', { params }),
+  getById: (id: string) => api.get(`/inquiries/${id}`),
+  delete: (id: string) => api.delete(`/inquiries/${id}`),
 } 
