@@ -1,18 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Phone,
   Mail,
-  MapPin,
   Facebook,
   Twitter,
   Instagram,
   Linkedin,
   MessageCircle,
+  X,
+  Clock,
 } from "lucide-react";
 import Logo from "./Logo";
+import FloatingQueryIcon from "./FloatingQueryIcon";
 
 const Footer: React.FC = () => {
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
+
   return (
     <footer className="bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -89,36 +93,36 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Support</h3>
             <ul className="space-y-2">
               <li>
-                <a
-                  href="#"
-                  className="text-gray-300 hover:text-white transition-colors"
-                >
-                  Help Center
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-300 hover:text-white transition-colors"
+                <button
+                  onClick={() => setIsInquiryModalOpen(true)}
+                  className="text-gray-300 hover:text-white transition-colors text-left w-full"
                 >
                   Contact Us
-                </a>
+                </button>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  to="/privacy-policy"
                   className="text-gray-300 hover:text-white transition-colors"
                 >
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  to="/terms-of-service"
                   className="text-gray-300 hover:text-white transition-colors"
                 >
                   Terms of Service
-                </a>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/cookies-policy"
+                  className="text-gray-300 hover:text-white transition-colors"
+                >
+                  Cookies Policy
+                </Link>
               </li>
             </ul>
           </div>
@@ -139,10 +143,10 @@ const Footer: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <Phone className="h-5 w-5 text-blue-400" />
                 <a
-                  href="tel:+917023176884"
+                  href="tel:+919828676477"
                   className="text-gray-300 hover:text-white transition-colors"
                 >
-                  +91 7023176884
+                  +91 9828676477
                 </a>
               </div>
               <div className="flex items-center space-x-3">
@@ -165,17 +169,6 @@ const Footer: React.FC = () => {
                   Join WhatsApp Group
                 </a>
               </div>
-              <div className="flex items-start space-x-3">
-                <MapPin className="h-5 w-5 text-blue-400 mt-1" />
-                <div className="text-gray-300 text-sm">
-                  <div className="font-medium">
-                    VRUSKARAMA REAL ESTATE PRIVATE LIMITED
-                  </div>
-                  <div>C/O Rang Raj Kanwar,</div>
-                  <div>Near Sadar Police Station,</div>
-                  <div>Bundi, Rajasthan – 323001, India</div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -188,28 +181,107 @@ const Footer: React.FC = () => {
               reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <a
-                href="#"
+              <Link
+                to="/privacy-policy"
                 className="text-gray-400 hover:text-white text-sm transition-colors"
               >
                 Privacy Policy
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                to="/terms-of-service"
                 className="text-gray-400 hover:text-white text-sm transition-colors"
               >
                 Terms of Service
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                to="/cookies-policy"
                 className="text-gray-400 hover:text-white text-sm transition-colors"
               >
-                Cookie Policy
-              </a>
+                Cookies Policy
+              </Link>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Inquiry Modal */}
+      <FloatingQueryIcon />
+
+      {/* Custom Inquiry Modal for Footer */}
+      {isInquiryModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[95vh] overflow-y-auto relative">
+            {/* Close button */}
+            <button
+              onClick={() => setIsInquiryModalOpen(false)}
+              className="absolute top-3 right-3 p-3 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 z-10"
+              aria-label="Close modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="p-4 sm:p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 pr-12">
+                  Contact Us
+                </h2>
+              </div>
+
+              {/* Contact Information */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                  Get in Touch! 🏠
+                </h3>
+                <p className="text-blue-800 text-sm mb-3">
+                  Whether you're buying, selling, or renting - our expert team
+                  is ready to assist you with all your real estate needs!
+                </p>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center text-blue-700">
+                    <Phone className="h-4 w-4 mr-2" />
+                    <span>
+                      Call us: <strong>8112279602</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center text-blue-700">
+                    <Phone className="h-4 w-4 mr-2" />
+                    <span>
+                      Call us: <strong>9828676477</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center text-blue-700">
+                    <Clock className="h-4 w-4 mr-2" />
+                    <span>
+                      Available: <strong>9 AM - 9 PM</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center text-blue-700">
+                    <Mail className="h-4 w-4 mr-2" />
+                    <span>
+                      Email: <strong>bussiness.startup.work@gmail.com</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <p className="text-gray-600 mb-4">
+                  For immediate assistance, please call us directly. For general
+                  inquiries, you can use the floating inquiry button on any
+                  page.
+                </p>
+                <button
+                  onClick={() => setIsInquiryModalOpen(false)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md transition-colors"
+                >
+                  Got it!
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   );
 };

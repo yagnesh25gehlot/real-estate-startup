@@ -40,6 +40,8 @@ router.get('/', optionalAuth, async (req: AuthenticatedRequest, res, next) => {
       type,
       action,
       location,
+      city,
+      state,
       minPrice,
       maxPrice,
       status,
@@ -66,6 +68,8 @@ router.get('/', optionalAuth, async (req: AuthenticatedRequest, res, next) => {
       type: type as string,
       action: action as string,
       location: location as string,
+      city: city as string,
+      state: state as string,
       minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
       maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
       status: status as string,
@@ -325,8 +329,14 @@ router.post('/', [
     }
 
     const { 
-      title, description, type, action, location, address, latitude, longitude, price,
-      area, dimensions, specifications, availabilityDate, listedBy,
+      title, description, type, action, 
+      // New address fields
+      city, state, pincode, locality, street, landmark, subRegion,
+      // Property type specific fields
+      flatNumber, buildingName, shopNumber, complexName, plotNumber,
+      // Legacy fields
+      location, address, latitude, longitude, 
+      price, area, dimensions, specifications, availabilityDate, listedBy,
       bhk, parkingAvailable, numberOfRooms, furnishingStatus, amenities,
       perMonthCharges, noticePeriod, allowedTenants, leaseDuration,
       registeredAs, registeredAsDescription, additionalAmenities, mobileNumber,
@@ -355,6 +365,21 @@ router.post('/', [
         description,
         type,
         action,
+        // New address fields
+        city,
+        state,
+        pincode,
+        locality,
+        street,
+        landmark,
+        subRegion,
+        // Property type specific fields
+        flatNumber,
+        buildingName,
+        shopNumber,
+        complexName,
+        plotNumber,
+        // Legacy fields
         location,
         address,
         latitude: latitude ? parseFloat(latitude) : undefined,
@@ -471,7 +496,8 @@ router.put('/:id', [
 
     const { id } = req.params;
     const { 
-      title, description, type, action, location, address, latitude, longitude, price, status,
+      title, description, type, action, location, address, city, state, pincode, locality, street, landmark, subRegion,
+      flatNumber, buildingName, shopNumber, complexName, plotNumber, latitude, longitude, price, status,
       area, dimensions, specifications, availabilityDate, listedBy,
       bhk, parkingAvailable, numberOfRooms, furnishingStatus, amenities,
       perMonthCharges, noticePeriod, allowedTenants, leaseDuration,
@@ -487,6 +513,9 @@ router.put('/:id', [
     const registryFiles = files.registryImage || [];
     const otherDocumentsFiles = files.otherDocuments || [];
 
+    console.log('🔍 Property update route - User object:', req.user);
+    console.log('🔍 Property update route - User ID:', req.user?.id);
+    
     const property = await PropertyService.updateProperty(
       id,
       {
@@ -496,6 +525,18 @@ router.put('/:id', [
         action,
         location,
         address,
+        city,
+        state,
+        pincode,
+        locality,
+        street,
+        landmark,
+        subRegion,
+        flatNumber,
+        buildingName,
+        shopNumber,
+        complexName,
+        plotNumber,
         latitude: latitude ? parseFloat(latitude) : undefined,
         longitude: longitude ? parseFloat(longitude) : undefined,
         price: price ? parseFloat(price) : undefined,

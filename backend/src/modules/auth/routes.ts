@@ -4,18 +4,11 @@ import { body, validationResult } from 'express-validator';
 import { AuthService } from './service';
 import { authMiddleware } from './middleware';
 import { createError } from '../../utils/errorHandler';
+import { S3Uploader } from '../../utils/s3Uploader';
 
-// Configure multer for profile picture uploads
+// Configure multer for memory storage (for S3 upload)
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, 'uploads/profiles/');
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + '-' + file.originalname);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit for profile pictures
   },
@@ -28,17 +21,9 @@ const upload = multer({
   },
 });
 
-// Configure multer for aadhaar image uploads
+// Configure multer for aadhaar image uploads (memory storage for S3)
 const aadhaarUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, 'uploads/aadhaar/');
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + '-' + file.originalname);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit for aadhaar images
   },
@@ -100,7 +85,20 @@ router.post('/signup', aadhaarUpload.single('aadhaarImage'), [
     }
 
     const { email, name, password, mobile, aadhaar } = req.body;
-    const aadhaarImageUrl = req.file ? `/uploads/aadhaar/${req.file.filename}` : null;
+    
+    let aadhaarImageUrl = null;
+    if (req.file) {
+      try {
+        const uploadResult = await S3Uploader.uploadDocument(req.file, 'aadhaar');
+        aadhaarImageUrl = uploadResult.url;
+      } catch (uploadError) {
+        console.error('Failed to upload aadhaar image to S3:', uploadError);
+        return res.status(400).json({
+          success: false,
+          error: 'Failed to upload aadhaar image',
+        });
+      }
+    }
 
     const result = await AuthService.signup({
       email,
@@ -194,7 +192,20 @@ router.post('/dealer-signup', aadhaarUpload.single('aadhaarImage'), [
     }
 
     const { email, name, password, mobile, aadhaar, referralCode } = req.body;
-    const aadhaarImageUrl = req.file ? `/uploads/aadhaar/${req.file.filename}` : null;
+    
+    let aadhaarImageUrl = null;
+    if (req.file) {
+      try {
+        const uploadResult = await S3Uploader.uploadDocument(req.file, 'aadhaar');
+        aadhaarImageUrl = uploadResult.url;
+      } catch (uploadError) {
+        console.error('Failed to upload aadhaar image to S3:', uploadError);
+        return res.status(400).json({
+          success: false,
+          error: 'Failed to upload aadhaar image',
+        });
+      }
+    }
 
     const result = await AuthService.dealerSignup({
       email,
@@ -284,7 +295,18 @@ router.post('/profile-picture', authMiddleware(['USER', 'DEALER', 'ADMIN']), upl
     }
 
     const userId = (req as any).user.id;
-    const profilePicUrl = `/uploads/profiles/${req.file.filename}`;
+    
+    let profilePicUrl = null;
+    try {
+      const uploadResult = await S3Uploader.uploadFile(req.file, 'profiles');
+      profilePicUrl = uploadResult.url;
+    } catch (uploadError) {
+      console.error('Failed to upload profile picture to S3:', uploadError);
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to upload profile picture',
+      });
+    }
 
     // Update user's profile picture
     await AuthService.updateProfilePicture(userId, profilePicUrl);
@@ -309,7 +331,18 @@ router.post('/aadhaar-image', authMiddleware(['USER', 'DEALER', 'ADMIN']), aadha
     }
 
     const userId = (req as any).user.id;
-    const aadhaarImageUrl = `/uploads/aadhaar/${req.file.filename}`;
+    
+    let aadhaarImageUrl = null;
+    try {
+      const uploadResult = await S3Uploader.uploadDocument(req.file, 'aadhaar');
+      aadhaarImageUrl = uploadResult.url;
+    } catch (uploadError) {
+      console.error('Failed to upload aadhaar image to S3:', uploadError);
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to upload aadhaar image',
+      });
+    }
 
     // Update user's aadhaar image
     await AuthService.updateAadhaarImage(userId, aadhaarImageUrl);

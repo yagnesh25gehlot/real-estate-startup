@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import {
   Search,
   Filter,
@@ -14,19 +15,28 @@ import {
   Phone,
   MapPin,
   Building,
+  Plus,
+  Zap,
+  IndianRupee,
 } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("RENT");
   const [selectedCity, setSelectedCity] = useState("Bangalore");
+  const [selectedState, setSelectedState] = useState("Karnataka");
   const [searchQuery, setSearchQuery] = useState("");
   const [propertyType, setPropertyType] = useState(""); // Changed to empty string for "Any"
   const [availabilityDate, setAvailabilityDate] = useState("");
   const [citySearchQuery, setCitySearchQuery] = useState("");
+  const [stateSearchQuery, setStateSearchQuery] = useState("");
   const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [showStateDropdown, setShowStateDropdown] = useState(false);
   const [filteredCities, setFilteredCities] = useState<string[]>([]);
+  const [filteredStates, setFilteredStates] = useState<string[]>([]);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
+  const stateDropdownRef = useRef<HTMLDivElement>(null);
 
   // Hardcoded cities list including Test City
   const cities = [
@@ -194,6 +204,46 @@ const Home = () => {
     "Puri",
   ];
 
+  // Hardcoded states list
+  const states = [
+    "Andhra Pradesh",
+    "Arunachal Pradesh",
+    "Assam",
+    "Bihar",
+    "Chhattisgarh",
+    "Goa",
+    "Gujarat",
+    "Haryana",
+    "Himachal Pradesh",
+    "Jharkhand",
+    "Karnataka",
+    "Kerala",
+    "Madhya Pradesh",
+    "Maharashtra",
+    "Manipur",
+    "Meghalaya",
+    "Mizoram",
+    "Nagaland",
+    "Odisha",
+    "Punjab",
+    "Rajasthan",
+    "Sikkim",
+    "Tamil Nadu",
+    "Telangana",
+    "Tripura",
+    "Uttar Pradesh",
+    "Uttarakhand",
+    "West Bengal",
+    "Delhi",
+    "Jammu and Kashmir",
+    "Ladakh",
+    "Chandigarh",
+    "Dadra and Nagar Haveli and Daman and Diu",
+    "Lakshadweep",
+    "Puducherry",
+    "Andaman and Nicobar Islands",
+  ];
+
   // Filter cities based on search query
   const filterCities = (query: string) => {
     if (!query.trim()) {
@@ -204,6 +254,16 @@ const Home = () => {
       .slice(0, 10); // Limit to 10 results
   };
 
+  // Filter states based on search query
+  const filterStates = (query: string) => {
+    if (!query.trim()) {
+      return states.slice(0, 10); // Show first 10 states when no search
+    }
+    return states
+      .filter((state) => state.toLowerCase().includes(query.toLowerCase()))
+      .slice(0, 10); // Limit to 10 results
+  };
+
   // Handle city search input change
   const handleCitySearchChange = (query: string) => {
     setCitySearchQuery(query);
@@ -211,11 +271,25 @@ const Home = () => {
     setShowCityDropdown(true);
   };
 
+  // Handle state search input change
+  const handleStateSearchChange = (query: string) => {
+    setStateSearchQuery(query);
+    setFilteredStates(filterStates(query));
+    setShowStateDropdown(true);
+  };
+
   // Handle city selection
   const handleCitySelect = (city: string) => {
     setSelectedCity(city);
     setCitySearchQuery(city);
     setShowCityDropdown(false);
+  };
+
+  // Handle state selection
+  const handleStateSelect = (state: string) => {
+    setSelectedState(state);
+    setStateSearchQuery(state);
+    setShowStateDropdown(false);
   };
 
   // Handle click outside to close dropdown
@@ -227,6 +301,12 @@ const Home = () => {
       ) {
         setShowCityDropdown(false);
       }
+      if (
+        stateDropdownRef.current &&
+        !stateDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowStateDropdown(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -235,10 +315,12 @@ const Home = () => {
     };
   }, []);
 
-  // Initialize filtered cities and city search query
+  // Initialize filtered cities and states
   useEffect(() => {
     setFilteredCities(cities.slice(0, 10));
+    setFilteredStates(states.slice(0, 10));
     setCitySearchQuery(selectedCity);
+    setStateSearchQuery(selectedState);
   }, []);
 
   const handleSearch = () => {
@@ -248,9 +330,14 @@ const Home = () => {
     // Add action (RENT, LEASE, SELL)
     params.append("action", activeTab);
 
-    // Add city if selected
-    if (selectedCity && selectedCity !== "Bangalore") {
-      params.append("location", selectedCity);
+    // Add city (always include, even if it's the default)
+    if (selectedCity) {
+      params.append("city", selectedCity);
+    }
+
+    // Add state (always include, even if it's the default)
+    if (selectedState) {
+      params.append("state", selectedState);
     }
 
     // Add property type if selected (not "Any")
@@ -398,6 +485,36 @@ const Home = () => {
               )}
             </div>
 
+            {/* State Search */}
+            <div className="relative" ref={stateDropdownRef}>
+              <label className="block text-base font-semibold text-gray-700 mb-3">
+                State
+              </label>
+              <input
+                type="text"
+                value={stateSearchQuery}
+                onChange={(e) => handleStateSearchChange(e.target.value)}
+                placeholder="Search for a state..."
+                className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg transition-all duration-200 bg-white hover:border-gray-300"
+              />
+              {showStateDropdown && filteredStates.length > 0 && (
+                <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                  {filteredStates.map((state, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleStateSelect(state)}
+                      className="w-full px-5 py-4 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none text-lg border-b border-gray-100 last:border-b-0 transition-colors duration-200"
+                    >
+                      {state}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Additional Search Options */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {/* Available By */}
             <div className="relative">
               <label className="block text-base font-semibold text-gray-700 mb-3">
@@ -425,6 +542,79 @@ const Home = () => {
           </div>
         </div>
 
+        {/* Post Property Ad Section - Prominent Placement */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 md:p-12 mb-16 relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-black opacity-10"></div>
+
+          <div className="relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              {/* Left Content */}
+              <div className="text-white">
+                <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                  Looking for Tenants / Buyers?
+                </h2>
+
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-white p-2 rounded-full">
+                      <Zap className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <span className="text-lg font-medium">
+                      Faster & Verified Tenants/Buyers
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() =>
+                    user ? navigate("/list-property") : navigate("/signup")
+                  }
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-xl font-bold text-xl transition-all duration-200 flex items-center space-x-3 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Plus className="h-6 w-6" />
+                  <span>
+                    {user
+                      ? "Post FREE Property Ad"
+                      : "Sign Up to Post Property"}
+                  </span>
+                </button>
+              </div>
+
+              {/* Right Graphic */}
+              <div className="flex justify-center items-center">
+                <div className="relative">
+                  {/* House Graphic */}
+                  <div className="bg-white rounded-lg p-4 md:p-6 shadow-lg transform rotate-3">
+                    <div className="w-24 md:w-32 h-18 md:h-24 bg-gray-200 rounded-t-lg relative">
+                      {/* Roof */}
+                      <div className="absolute -top-2 left-0 right-0 h-4 bg-blue-600 transform -skew-x-12"></div>
+                      {/* Chimney */}
+                      <div className="absolute -top-4 right-4 w-3 h-6 bg-blue-700 rounded-t"></div>
+                      {/* Door */}
+                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-8 bg-blue-800 rounded-t"></div>
+                      {/* Windows */}
+                      <div className="absolute top-4 left-4 w-4 h-4 bg-blue-300 rounded"></div>
+                      <div className="absolute top-4 right-4 w-4 h-4 bg-blue-300 rounded"></div>
+                    </div>
+                    {/* Tree */}
+                    <div className="absolute -bottom-2 -left-2 w-6 h-8 bg-green-600 rounded-full"></div>
+                  </div>
+
+                  {/* Hand dropping key */}
+                  <div className="absolute -top-8 -right-4">
+                    <div className="bg-white rounded-full p-2 shadow-lg">
+                      <div className="w-6 h-8 bg-blue-300 rounded-t-full relative">
+                        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-blue-300 rounded-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Property Categories */}
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-gray-900 mb-6">
@@ -439,30 +629,35 @@ const Home = () => {
           {[
             {
               name: "Villa",
+              propertyType: "VILLA",
               image: "/images/villa.jpg",
               fallbackImage:
                 "https://images.unsplash.com/photo-1613977257363-707ba9348227?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
             },
             {
               name: "House",
+              propertyType: "HOUSE",
               image: "/images/house.jpg",
               fallbackImage:
                 "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
             },
             {
               name: "Apartment",
+              propertyType: "APARTMENT",
               image: "/images/apartments.jpg",
               fallbackImage:
                 "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
             },
             {
               name: "Plot",
+              propertyType: "PLOT",
               image: "/images/plot.jpg",
               fallbackImage:
                 "https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
             },
             {
               name: "Shop",
+              propertyType: "SHOP",
               image: "/images/shop.jpg",
               fallbackImage:
                 "https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
@@ -470,7 +665,10 @@ const Home = () => {
           ].map((category, index) => (
             <div
               key={index}
-              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow group"
+              onClick={() =>
+                navigate(`/properties?type=${category.propertyType}`)
+              }
+              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer transform hover:scale-105"
             >
               <div className="relative h-32 overflow-hidden">
                 <img
@@ -481,16 +679,24 @@ const Home = () => {
                     e.currentTarget.src = category.fallbackImage;
                   }}
                 />
+                {/* Overlay on hover */}
+                <div className="absolute inset-0 bg-blue-600 bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
+                  <div className="text-white font-semibold text-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    View {category.name}s
+                  </div>
+                </div>
               </div>
               <div className="p-4 text-center">
-                <h3 className="font-semibold text-gray-900">{category.name}</h3>
+                <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-300">
+                  {category.name}
+                </h3>
               </div>
             </div>
           ))}
         </div>
 
         {/* Features Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
           <div className="text-center">
             <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
               <Shield className="w-8 h-8 text-blue-600" />
@@ -501,17 +707,6 @@ const Home = () => {
             <p className="text-gray-600">
               Verified properties and trusted dealers with 20+ years of
               experience
-            </p>
-          </div>
-          <div className="text-center">
-            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No Brokerage
-            </h3>
-            <p className="text-gray-600">
-              Direct connection between property owners and buyers/tenants
             </p>
           </div>
           <div className="text-center">

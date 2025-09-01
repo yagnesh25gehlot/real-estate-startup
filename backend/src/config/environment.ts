@@ -2,7 +2,33 @@ import dotenv from 'dotenv'
 import path from 'path'
 
 // Load environment variables from the correct location
-dotenv.config({ path: path.join(__dirname, '../../.env') })
+// Priority: .env.local (local development) > .env (default)
+const envPath = path.join(__dirname, '../../../.env.local')
+const defaultEnvPath = path.join(__dirname, '../../.env')
+
+console.log('🔍 Environment file paths:');
+console.log('   .env.local path:', envPath);
+console.log('   .env path:', defaultEnvPath);
+console.log('   .env.local exists:', require('fs').existsSync(envPath));
+console.log('   .env exists:', require('fs').existsSync(defaultEnvPath));
+
+// FORCE LOCAL DATABASE CONFIGURATION
+console.log('🚨 FORCING LOCAL DATABASE CONFIGURATION');
+
+// Load local environment file first (if exists)
+if (require('fs').existsSync(envPath)) {
+  dotenv.config({ path: envPath })
+  console.log('📁 Loaded local environment file (.env.local)')
+} else {
+  // Fallback to default .env file
+  dotenv.config({ path: defaultEnvPath })
+  console.log('📁 Loaded default environment file (.env)')
+}
+
+// FORCE OVERRIDE DATABASE URL FOR LOCAL DEVELOPMENT
+process.env.DATABASE_URL = process.env.LOCAL_DATABASE_URL || "postgresql://yagnesh@localhost:5432/realtytopper_local";
+console.log('🔧 FORCED DATABASE_URL to local database');
+console.log('   DATABASE_URL:', process.env.DATABASE_URL?.substring(0, 50) + '...');
 
 // Environment detection
 const isProduction = process.env.NODE_ENV === 'production'
@@ -11,30 +37,40 @@ const isLocal = !isProduction && !isRailway
 
 // Database configuration
 const getDatabaseUrl = (): string => {
-  let databaseUrl = process.env.DATABASE_URL
+  let databaseUrl: string | undefined
+
+  console.log('🔍 Database URL Selection Debug:');
+  console.log('   isLocal:', isLocal);
+  console.log('   isRailway:', isRailway);
+  console.log('   isProduction:', isProduction);
+  console.log('   LOCAL_DATABASE_URL:', process.env.LOCAL_DATABASE_URL ? 'SET' : 'NOT SET');
+  console.log('   DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+
+  // ALWAYS USE LOCAL DATABASE FOR DEVELOPMENT
+if (isLocal) {
+  // Always use local database for local development
+  databaseUrl = process.env.DATABASE_URL || "postgresql://yagnesh@localhost:5432/realtytopper_local"
+  console.log('✅ FORCED: Using local database for development')
+  console.log('   Database URL:', databaseUrl?.substring(0, 50) + '...')
+} else if (isRailway || isProduction) {
+  // Production/Railway - use Railway database
+  databaseUrl = process.env.DATABASE_URL
+  console.log('✅ Using Railway production database')
+} else {
+  // Fallback
+  databaseUrl = process.env.DATABASE_URL
+  console.log('⚠️  Using default DATABASE_URL')
+}
 
   if (!databaseUrl) {
-    console.error('❌ DATABASE_URL not found in environment variables')
+    console.error('❌ No database URL found for current environment')
+    console.error('   Local development: Set LOCAL_DATABASE_URL')
+    console.error('   Production: Set DATABASE_URL')
     process.exit(1)
   }
 
-  // For local development, use Railway database by default
-  if (isLocal) {
-    console.log('✅ Using Railway database for local development')
-    
-    // If you want to use a local database instead, set LOCAL_DATABASE_URL environment variable
-    if (process.env.LOCAL_DATABASE_URL) {
-      databaseUrl = process.env.LOCAL_DATABASE_URL
-      console.log('✅ Using local database (LOCAL_DATABASE_URL set)')
-    }
-  } else if (isRailway || isProduction) {
-    console.log('✅ Using Railway production database')
-  } else {
-    console.log('⚠️  Using default DATABASE_URL')
-  }
-
   // Validate database URL
-  if (!databaseUrl || !databaseUrl.includes('postgresql://')) {
+  if (!databaseUrl.includes('postgresql://')) {
     console.error('❌ Invalid DATABASE_URL format')
     process.exit(1)
   }

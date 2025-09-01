@@ -110,6 +110,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Unauthorized - clear user data and redirect to login
       localStorage.removeItem('user')
+      // Show detailed error notification before redirecting
+      import('../utils/errorNotifications').then(({ showError }) => {
+        showError(error, 'auth');
+      });
       window.location.href = '/login'
     }
     

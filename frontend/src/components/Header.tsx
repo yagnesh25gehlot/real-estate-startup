@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Menu, X, User, LogOut, Home, Plus, ChevronDown } from "lucide-react";
@@ -8,6 +8,39 @@ const Header = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDesktopDropdownOpen, setIsDesktopDropdownOpen] = useState(false);
+
+  // Handle body scroll lock when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isMobileMenuOpen]);
+
+  // Handle click outside to close desktop dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest(".user-dropdown")) {
+        setIsDesktopDropdownOpen(false);
+      }
+    };
+
+    if (isDesktopDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDesktopDropdownOpen]);
 
   const handleLogout = () => {
     logout();
@@ -18,13 +51,13 @@ const Header = () => {
   const shouldShowJoinUs = user && user.role === "USER" && !user.dealer;
 
   return (
-    <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo Section */}
           <div className="flex items-center">
             <Link
-              to="/"
+              to="/about"
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             >
               <Logo />
@@ -65,7 +98,7 @@ const Header = () => {
                 {/* Join Us Button for Normal Users */}
                 {shouldShowJoinUs && (
                   <Link
-                    to="/join-us"
+                    to="/dealer-signup"
                     className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     Join Us
@@ -73,16 +106,54 @@ const Header = () => {
                 )}
 
                 {/* User Dropdown */}
-                <div className="relative group">
-                  <button className="flex items-center space-x-2 bg-gray-50 hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors duration-200 border border-gray-200">
-                    <User className="h-5 w-5 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">
+                <div className="relative user-dropdown">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDesktopDropdownOpen(!isDesktopDropdownOpen);
+                    }}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200 border ${
+                      isDesktopDropdownOpen
+                        ? "bg-blue-50 border-blue-200 text-blue-700"
+                        : "bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-700"
+                    }`}
+                    style={{
+                      backgroundColor: isDesktopDropdownOpen
+                        ? "#dbeafe"
+                        : undefined,
+                      borderColor: isDesktopDropdownOpen
+                        ? "#3b82f6"
+                        : undefined,
+                    }}
+                  >
+                    <User
+                      className={`h-5 w-5 ${
+                        isDesktopDropdownOpen
+                          ? "text-blue-600"
+                          : "text-gray-600"
+                      }`}
+                    />
+                    <span
+                      className={`text-sm font-medium ${
+                        isDesktopDropdownOpen
+                          ? "text-blue-700"
+                          : "text-gray-700"
+                      }`}
+                    >
                       {user.name || user.email?.split("@")[0]}
                     </span>
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                    <ChevronDown
+                      className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${
+                        isDesktopDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
                   </button>
 
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                  <div
+                    className={`absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-[9999] ${
+                      isDesktopDropdownOpen ? "block" : "hidden"
+                    }`}
+                  >
                     <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl">
                       <p className="text-sm font-medium text-gray-900">
                         {user.name || user.email}
@@ -95,6 +166,7 @@ const Header = () => {
                     <Link
                       to="/dashboard"
                       className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                      onClick={() => setIsDesktopDropdownOpen(false)}
                     >
                       <span className="w-4 h-4 mr-3">📊</span>
                       Dashboard
@@ -103,6 +175,7 @@ const Header = () => {
                     <Link
                       to="/profile"
                       className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                      onClick={() => setIsDesktopDropdownOpen(false)}
                     >
                       <User className="h-4 w-4 mr-3" />
                       Profile
@@ -111,6 +184,7 @@ const Header = () => {
                     <Link
                       to="/my-properties"
                       className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                      onClick={() => setIsDesktopDropdownOpen(false)}
                     >
                       <Home className="h-4 w-4 mr-3" />
                       My Properties
@@ -119,6 +193,7 @@ const Header = () => {
                     <Link
                       to="/about"
                       className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                      onClick={() => setIsDesktopDropdownOpen(false)}
                     >
                       <span className="w-4 h-4 mr-3">ℹ️</span>
                       About Us
@@ -128,6 +203,7 @@ const Header = () => {
                       <Link
                         to="/admin"
                         className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                        onClick={() => setIsDesktopDropdownOpen(false)}
                       >
                         <span className="w-4 h-4 mr-3">⚙️</span>
                         Admin Panel
@@ -136,7 +212,10 @@ const Header = () => {
 
                     <div className="border-t border-gray-100 mt-2 pt-2">
                       <button
-                        onClick={handleLogout}
+                        onClick={() => {
+                          handleLogout();
+                          setIsDesktopDropdownOpen(false);
+                        }}
                         className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
                         <LogOut className="h-4 w-4 mr-3" />
@@ -163,7 +242,7 @@ const Header = () => {
                 </Link>
 
                 <Link
-                  to="/join-us"
+                  to="/dealer-signup"
                   className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                 >
                   Join Us
@@ -173,10 +252,13 @@ const Header = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="lg:hidden">
+          <div className="lg:hidden flex items-center">
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
+              onClick={() => {
+                setIsMobileMenuOpen(!isMobileMenuOpen);
+              }}
+              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Toggle mobile menu"
             >
               {isMobileMenuOpen ? (
                 <X className="h-6 w-6 text-gray-700" />
@@ -189,137 +271,153 @@ const Header = () => {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 bg-white">
-            <div className="px-4 py-6 space-y-4">
-              {/* Main Navigation */}
-              <div className="space-y-3">
-                <Link
-                  to="/"
-                  className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Home className="h-5 w-5 mr-3" />
-                  Home
-                </Link>
-
-                {/* List Property Button - Only for authenticated users */}
-                {user && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            <div className="lg:hidden border-t border-gray-200 bg-white absolute top-full left-0 right-0 z-50 shadow-lg max-h-screen overflow-y-auto">
+              <div className="px-4 py-6 space-y-4">
+                {/* Main Navigation */}
+                <div className="space-y-3">
                   <Link
-                    to="/list-property"
+                    to="/"
                     className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <Plus className="h-5 w-5 mr-3" />
-                    List Property
+                    <Home className="h-5 w-5 mr-3" />
+                    Home
                   </Link>
-                )}
-              </div>
 
-              {/* Auth Section */}
-              {user ? (
-                <div className="space-y-3 pt-4 border-t border-gray-200">
-                  {/* Join Us Button for Normal Users (Mobile) */}
-                  {shouldShowJoinUs && (
+                  {/* List Property Button - Only for authenticated users */}
+                  {user && (
                     <Link
-                      to="/join-us"
+                      to="/list-property"
+                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Plus className="h-5 w-5 mr-3" />
+                      List Property
+                    </Link>
+                  )}
+                </div>
+
+                {/* Auth Section */}
+                {user ? (
+                  <div className="space-y-3 pt-4 border-t border-gray-200">
+                    {/* Join Us Button for Normal Users (Mobile) */}
+                    {shouldShowJoinUs && (
+                      <Link
+                        to="/dealer-signup"
+                        className="flex items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <span className="w-5 h-5 mr-3">🤝</span>
+                        Join Us
+                      </Link>
+                    )}
+
+                    <Link
+                      to="/dashboard"
+                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <span className="w-5 h-5 mr-3">📊</span>
+                      Dashboard
+                    </Link>
+
+                    <Link
+                      to="/profile"
+                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <User className="h-5 w-5 mr-3" />
+                      Profile
+                    </Link>
+
+                    <Link
+                      to="/my-properties"
+                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Home className="h-5 w-5 mr-3" />
+                      My Properties
+                    </Link>
+
+                    <Link
+                      to="/list-property"
+                      className="flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Plus className="h-5 w-5 mr-3" />
+                      List Property
+                    </Link>
+
+                    <Link
+                      to="/about"
+                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <span className="w-5 h-5 mr-3">ℹ️</span>
+                      About Us
+                    </Link>
+
+                    {user.role === "ADMIN" && (
+                      <Link
+                        to="/admin"
+                        className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <span className="w-5 h-5 mr-3">⚙️</span>
+                        Admin Panel
+                      </Link>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <LogOut className="h-5 w-5 mr-3" />
+                      Logout
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3 pt-4 border-t border-gray-200">
+                    <Link
+                      to="/signup"
+                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <span className="w-5 h-5 mr-3">📝</span>
+                      Sign Up
+                    </Link>
+
+                    <Link
+                      to="/login"
+                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <span className="w-5 h-5 mr-3">🔑</span>
+                      Login
+                    </Link>
+
+                    <Link
+                      to="/dealer-signup"
                       className="flex items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <span className="w-5 h-5 mr-3">🤝</span>
                       Join Us
                     </Link>
-                  )}
-
-                  <Link
-                    to="/dashboard"
-                    className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <span className="w-5 h-5 mr-3">📊</span>
-                    Dashboard
-                  </Link>
-
-                  <Link
-                    to="/profile"
-                    className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <User className="h-5 w-5 mr-3" />
-                    Profile
-                  </Link>
-
-                  <Link
-                    to="/my-properties"
-                    className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Home className="h-5 w-5 mr-3" />
-                    My Properties
-                  </Link>
-
-                  <Link
-                    to="/about"
-                    className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <span className="w-5 h-5 mr-3">ℹ️</span>
-                    About Us
-                  </Link>
-
-                  {user.role === "ADMIN" && (
-                    <Link
-                      to="/admin"
-                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <span className="w-5 h-5 mr-3">⚙️</span>
-                      Admin Panel
-                    </Link>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex items-center w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <LogOut className="h-5 w-5 mr-3" />
-                    Logout
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3 pt-4 border-t border-gray-200">
-                  <Link
-                    to="/signup"
-                    className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <span className="w-5 h-5 mr-3">📝</span>
-                    Sign Up
-                  </Link>
-
-                  <Link
-                    to="/login"
-                    className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <span className="w-5 h-5 mr-3">🔑</span>
-                    Login
-                  </Link>
-
-                  <Link
-                    to="/join-us"
-                    className="flex items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <span className="w-5 h-5 mr-3">🤝</span>
-                    Join Us
-                  </Link>
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </header>

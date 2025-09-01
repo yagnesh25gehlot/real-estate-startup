@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
-import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Bell, 
-  Search, 
-  Filter, 
-  CheckCircle, 
-  Circle, 
-  Trash2, 
+import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
+import { useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  Bell,
+  Search,
+  Filter,
+  CheckCircle,
+  Circle,
+  Trash2,
   RefreshCw,
   Eye,
   Building2,
@@ -25,15 +25,24 @@ import {
   ChevronRight,
   X,
   Check,
-  RotateCcw
-} from 'lucide-react';
-import { notificationsApi } from '../services/api';
-import LoadingSpinner from '../components/LoadingSpinner';
-import toast from 'react-hot-toast';
+  RotateCcw,
+  MessageCircle,
+} from "lucide-react";
+import { notificationsApi } from "../services/api";
+import LoadingSpinner from "../components/LoadingSpinner";
+import toast from "react-hot-toast";
 
 interface Notification {
   id: string;
-  type: 'PROPERTY_ADDED' | 'PROPERTY_UPDATED' | 'USER_SIGNUP' | 'BOOKING_CREATED' | 'DEALER_REQUEST';
+  type:
+    | "PROPERTY_ADDED"
+    | "PROPERTY_UPDATED"
+    | "USER_SIGNUP"
+    | "BOOKING_CREATED"
+    | "DEALER_REQUEST"
+    | "INQUIRY_RECEIVED"
+    | "PAYMENT_RECEIVED"
+    | "SYSTEM_ALERT";
   title: string;
   message: string;
   data?: any;
@@ -50,14 +59,15 @@ const AdminNotifications = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalNotifications, setTotalNotifications] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [selectedNotification, setSelectedNotification] =
+    useState<Notification | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  
+
   // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('ALL');
-  const [readFilter, setReadFilter] = useState('ALL');
-  const [dateFilter, setDateFilter] = useState('ALL');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [readFilter, setReadFilter] = useState("ALL");
+  const [dateFilter, setDateFilter] = useState("ALL");
 
   useEffect(() => {
     fetchNotifications();
@@ -71,17 +81,22 @@ const AdminNotifications = () => {
         page: currentPage,
         limit: 20,
         search: searchTerm,
-        type: typeFilter !== 'ALL' ? typeFilter : undefined,
-        read: readFilter !== 'ALL' ? (readFilter === 'READ' ? 'true' : 'false') : undefined,
-        date: dateFilter !== 'ALL' ? dateFilter : undefined,
+        type: typeFilter !== "ALL" ? typeFilter : undefined,
+        read:
+          readFilter !== "ALL"
+            ? readFilter === "READ"
+              ? "true"
+              : "false"
+            : undefined,
+        date: dateFilter !== "ALL" ? dateFilter : undefined,
       });
-      
+
       setNotifications(response.data.data.notifications || []);
       setTotalPages(response.data.data.totalPages || 1);
       setTotalNotifications(response.data.data.total || 0);
     } catch (error: any) {
-      console.error('Failed to fetch notifications:', error);
-      toast.error('Failed to fetch notifications');
+      console.error("Failed to fetch notifications:", error);
+      toast.error("Failed to fetch notifications");
     } finally {
       setLoading(false);
     }
@@ -92,58 +107,68 @@ const AdminNotifications = () => {
       const response = await notificationsApi.getUnreadCount();
       setUnreadCount(response.data.data.count || 0);
     } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+      console.error("Failed to fetch unread count:", error);
     }
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
       await notificationsApi.markAsRead(notificationId);
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
       );
       fetchUnreadCount();
-      toast.success('Notification marked as read');
+      toast.success("Notification marked as read");
     } catch (error: any) {
-      toast.error('Failed to mark notification as read');
+      toast.error("Failed to mark notification as read");
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await notificationsApi.markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       fetchUnreadCount();
-      toast.success('All notifications marked as read');
+      toast.success("All notifications marked as read");
     } catch (error: any) {
-      toast.error('Failed to mark all notifications as read');
+      toast.error("Failed to mark all notifications as read");
     }
   };
 
   const handleCleanup = async () => {
-    if (window.confirm('This will delete all read notifications older than 30 days. Continue?')) {
+    if (
+      window.confirm(
+        "This will delete all read notifications older than 30 days. Continue?"
+      )
+    ) {
       try {
         await notificationsApi.cleanup();
         fetchNotifications();
-        toast.success('Old notifications cleaned up');
+        toast.success("Old notifications cleaned up");
       } catch (error: any) {
-        toast.error('Failed to cleanup notifications');
+        toast.error("Failed to cleanup notifications");
       }
     }
   };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'PROPERTY_ADDED':
+      case "PROPERTY_ADDED":
         return <Building2 className="h-5 w-5 text-green-600" />;
-      case 'PROPERTY_UPDATED':
+      case "PROPERTY_UPDATED":
         return <Home className="h-5 w-5 text-blue-600" />;
-      case 'USER_SIGNUP':
+      case "USER_SIGNUP":
         return <User className="h-5 w-5 text-purple-600" />;
-      case 'BOOKING_CREATED':
+      case "BOOKING_CREATED":
         return <CreditCard className="h-5 w-5 text-orange-600" />;
-      case 'DEALER_REQUEST':
+      case "DEALER_REQUEST":
         return <Users className="h-5 w-5 text-indigo-600" />;
+      case "INQUIRY_RECEIVED":
+        return <MessageCircle className="h-5 w-5 text-teal-600" />;
+      case "PAYMENT_RECEIVED":
+        return <CreditCard className="h-5 w-5 text-emerald-600" />;
+      case "SYSTEM_ALERT":
+        return <AlertCircle className="h-5 w-5 text-red-600" />;
       default:
         return <Bell className="h-5 w-5 text-gray-600" />;
     }
@@ -151,18 +176,24 @@ const AdminNotifications = () => {
 
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'PROPERTY_ADDED':
-        return 'bg-green-50 border-green-200';
-      case 'PROPERTY_UPDATED':
-        return 'bg-blue-50 border-blue-200';
-      case 'USER_SIGNUP':
-        return 'bg-purple-50 border-purple-200';
-      case 'BOOKING_CREATED':
-        return 'bg-orange-50 border-orange-200';
-      case 'DEALER_REQUEST':
-        return 'bg-indigo-50 border-indigo-200';
+      case "PROPERTY_ADDED":
+        return "bg-green-50 border-green-200";
+      case "PROPERTY_UPDATED":
+        return "bg-blue-50 border-blue-200";
+      case "USER_SIGNUP":
+        return "bg-purple-50 border-purple-200";
+      case "BOOKING_CREATED":
+        return "bg-orange-50 border-orange-200";
+      case "DEALER_REQUEST":
+        return "bg-indigo-50 border-indigo-200";
+      case "INQUIRY_RECEIVED":
+        return "bg-teal-50 border-teal-200";
+      case "PAYMENT_RECEIVED":
+        return "bg-emerald-50 border-emerald-200";
+      case "SYSTEM_ALERT":
+        return "bg-red-50 border-red-200";
       default:
-        return 'bg-gray-50 border-gray-200';
+        return "bg-gray-50 border-gray-200";
     }
   };
 
@@ -171,28 +202,51 @@ const AdminNotifications = () => {
     const date = new Date(dateString);
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 60) return "Just now";
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 2592000)
+      return `${Math.floor(diffInSeconds / 86400)}d ago`;
     return date.toLocaleDateString();
   };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
       hour12: true,
     });
   };
 
   const handleNotificationClick = (notification: Notification) => {
+    console.log("🔍 Notification clicked:", {
+      id: notification.id,
+      type: notification.type,
+      title: notification.title,
+      data: notification.data,
+    });
+
+    // Mark as read if unread
+    if (!notification.read) {
+      handleMarkAsRead(notification.id);
+    }
+
+    // Navigate directly to the related item
+    navigateToRelatedItem(notification);
+  };
+
+  const handleViewDetails = (
+    notification: Notification,
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation(); // Prevent triggering the main click handler
     setSelectedNotification(notification);
     setShowDetailsModal(true);
-    
+
     // Mark as read if unread
     if (!notification.read) {
       handleMarkAsRead(notification.id);
@@ -200,33 +254,72 @@ const AdminNotifications = () => {
   };
 
   const navigateToRelatedItem = (notification: Notification) => {
-    if (!notification.data) return;
+    console.log("🔍 Navigating to related item:", {
+      type: notification.type,
+      data: notification.data,
+    });
+
+    if (!notification.data) {
+      // If no specific data, navigate to the general admin page
+      navigate("/admin");
+      toast.success("Navigated to admin dashboard");
+      return;
+    }
 
     switch (notification.type) {
-      case 'PROPERTY_ADDED':
-      case 'PROPERTY_UPDATED':
+      case "PROPERTY_ADDED":
+      case "PROPERTY_UPDATED":
         if (notification.data.propertyId) {
-          navigate(`/admin/properties`);
-          toast.success('Navigated to properties page');
+          // Navigate to specific property detail if available
+          navigate(`/property/${notification.data.propertyId}`);
+          toast.success("Navigated to property details");
+        } else {
+          navigate("/admin/properties");
+          toast.success("Navigated to properties page");
         }
         break;
-      case 'BOOKING_CREATED':
+      case "BOOKING_CREATED":
         if (notification.data.bookingId) {
-          navigate(`/admin/bookings`);
-          toast.success('Navigated to bookings page');
+          navigate("/admin/bookings");
+          toast.success("Navigated to bookings page");
+        } else {
+          navigate("/admin/bookings");
+          toast.success("Navigated to bookings page");
         }
         break;
-      case 'USER_SIGNUP':
+      case "USER_SIGNUP":
         if (notification.data.userId) {
-          navigate(`/admin/users`);
-          toast.success('Navigated to users page');
+          navigate("/admin/users");
+          toast.success("Navigated to users page");
+        } else {
+          navigate("/admin/users");
+          toast.success("Navigated to users page");
         }
         break;
-      case 'DEALER_REQUEST':
+      case "DEALER_REQUEST":
         if (notification.data.dealerId) {
-          navigate(`/admin/dealer-requests`);
-          toast.success('Navigated to dealer requests page');
+          navigate("/admin/dealer-requests");
+          toast.success("Navigated to dealer requests page");
+        } else {
+          navigate("/admin/dealer-requests");
+          toast.success("Navigated to dealer requests page");
         }
+        break;
+      case "INQUIRY_RECEIVED":
+        navigate("/admin/inquiries");
+        toast.success("Navigated to inquiries page");
+        break;
+      case "PAYMENT_RECEIVED":
+        navigate("/admin/bookings");
+        toast.success("Navigated to bookings page");
+        break;
+      case "SYSTEM_ALERT":
+        navigate("/admin");
+        toast.success("Navigated to admin dashboard");
+        break;
+      default:
+        navigate("/admin");
+        toast.success("Navigated to admin dashboard");
         break;
     }
     setShowDetailsModal(false);
@@ -237,45 +330,50 @@ const AdminNotifications = () => {
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(notification =>
-        notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        notification.message.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (notification) =>
+          notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          notification.message.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Apply type filter
-    if (typeFilter !== 'ALL') {
-      filtered = filtered.filter(notification => notification.type === typeFilter);
+    if (typeFilter !== "ALL") {
+      filtered = filtered.filter(
+        (notification) => notification.type === typeFilter
+      );
     }
 
     // Apply read filter
-    if (readFilter !== 'ALL') {
-      const isRead = readFilter === 'READ';
-      filtered = filtered.filter(notification => notification.read === isRead);
+    if (readFilter !== "ALL") {
+      const isRead = readFilter === "READ";
+      filtered = filtered.filter(
+        (notification) => notification.read === isRead
+      );
     }
 
     // Apply date filter
-    if (dateFilter !== 'ALL') {
+    if (dateFilter !== "ALL") {
       const now = new Date();
       const filterDate = new Date();
-      
+
       switch (dateFilter) {
-        case 'TODAY':
+        case "TODAY":
           filterDate.setHours(0, 0, 0, 0);
-          filtered = filtered.filter(notification => 
-            new Date(notification.createdAt) >= filterDate
+          filtered = filtered.filter(
+            (notification) => new Date(notification.createdAt) >= filterDate
           );
           break;
-        case 'WEEK':
+        case "WEEK":
           filterDate.setDate(filterDate.getDate() - 7);
-          filtered = filtered.filter(notification => 
-            new Date(notification.createdAt) >= filterDate
+          filtered = filtered.filter(
+            (notification) => new Date(notification.createdAt) >= filterDate
           );
           break;
-        case 'MONTH':
+        case "MONTH":
           filterDate.setMonth(filterDate.getMonth() - 1);
-          filtered = filtered.filter(notification => 
-            new Date(notification.createdAt) >= filterDate
+          filtered = filtered.filter(
+            (notification) => new Date(notification.createdAt) >= filterDate
           );
           break;
       }
@@ -305,7 +403,7 @@ const AdminNotifications = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={() => navigate('/admin')}
+              onClick={() => navigate("/admin")}
               className="flex items-center text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
@@ -314,18 +412,24 @@ const AdminNotifications = () => {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Notifications
+              </h1>
               <p className="text-gray-600 mt-2">
                 Manage and monitor all system notifications
               </p>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{totalNotifications}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {totalNotifications}
+                </div>
                 <div className="text-sm text-gray-600">Total Notifications</div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-orange-600">{unreadCount}</div>
+                <div className="text-2xl font-bold text-orange-600">
+                  {unreadCount}
+                </div>
                 <div className="text-sm text-gray-600">Unread</div>
               </div>
             </div>
@@ -347,7 +451,7 @@ const AdminNotifications = () => {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              
+
               {/* Type Filter */}
               <select
                 value={typeFilter}
@@ -360,6 +464,9 @@ const AdminNotifications = () => {
                 <option value="USER_SIGNUP">User Signup</option>
                 <option value="BOOKING_CREATED">Booking Created</option>
                 <option value="DEALER_REQUEST">Dealer Request</option>
+                <option value="INQUIRY_RECEIVED">Inquiry Received</option>
+                <option value="PAYMENT_RECEIVED">Payment Received</option>
+                <option value="SYSTEM_ALERT">System Alert</option>
               </select>
 
               {/* Read Filter */}
@@ -385,7 +492,7 @@ const AdminNotifications = () => {
                 <option value="MONTH">This Month</option>
               </select>
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex items-center space-x-2">
               <button
@@ -417,16 +524,26 @@ const AdminNotifications = () => {
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Notifications ({filteredNotifications.length})
-              </h2>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Notifications ({filteredNotifications.length})
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  💡 Click on any notification to navigate to the related page.
+                  Use the 👁️ icon to view details.
+                </p>
+              </div>
             </div>
-            
+
             {filteredNotifications.length === 0 ? (
               <div className="text-center py-12">
                 <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No notifications found</h3>
-                <p className="text-gray-600">No notifications match your current filters.</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No notifications found
+                </h3>
+                <p className="text-gray-600">
+                  No notifications match your current filters.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -436,7 +553,7 @@ const AdminNotifications = () => {
                     className={`
                       p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md
                       ${getNotificationColor(notification.type)}
-                      ${notification.read ? 'opacity-75' : 'opacity-100'}
+                      ${notification.read ? "opacity-75" : "opacity-100"}
                     `}
                     onClick={() => handleNotificationClick(notification)}
                   >
@@ -444,11 +561,17 @@ const AdminNotifications = () => {
                       <div className="flex-shrink-0">
                         {getNotificationIcon(notification.type)}
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <h3 className={`text-sm font-medium ${notification.read ? 'text-gray-900' : 'text-blue-900'}`}>
+                            <h3
+                              className={`text-sm font-medium ${
+                                notification.read
+                                  ? "text-gray-900"
+                                  : "text-blue-900"
+                              }`}
+                            >
                               {notification.title}
                             </h3>
                             {!notification.read && (
@@ -460,25 +583,29 @@ const AdminNotifications = () => {
                               {formatTimeAgo(notification.createdAt)}
                             </span>
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigateToRelatedItem(notification);
-                              }}
-                              className="text-blue-600 hover:text-blue-800"
-                              title="Go to related item"
+                              onClick={(e) =>
+                                handleViewDetails(notification, e)
+                              }
+                              className="text-gray-600 hover:text-gray-800 p-1 rounded"
+                              title="View details"
                             >
-                              <ExternalLink className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
                             </button>
                           </div>
                         </div>
-                        
+
                         <p className="text-sm text-gray-600 mt-1">
                           {notification.message}
                         </p>
-                        
+
                         <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                          <span className="capitalize">{notification.type.replace('_', ' ').toLowerCase()}</span>
+                          <span className="capitalize">
+                            {notification.type.replace("_", " ").toLowerCase()}
+                          </span>
                           <span>{formatDateTime(notification.createdAt)}</span>
+                          <span className="text-blue-600 font-medium">
+                            Click to navigate →
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -494,19 +621,21 @@ const AdminNotifications = () => {
           <div className="mt-6 flex justify-center">
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
               >
                 Previous
               </button>
-              
+
               <span className="px-3 py-2 text-sm text-gray-600">
                 Page {currentPage} of {totalPages}
               </span>
-              
+
               <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
                 disabled={currentPage === totalPages}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
               >
@@ -523,7 +652,9 @@ const AdminNotifications = () => {
           <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Notification Details</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Notification Details
+                </h2>
                 <button
                   onClick={() => setShowDetailsModal(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -531,7 +662,7 @@ const AdminNotifications = () => {
                   <X className="h-6 w-6" />
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 {/* Header */}
                 <div className="flex items-start space-x-4">
@@ -547,19 +678,23 @@ const AdminNotifications = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 {/* Message */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Message</h4>
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">
+                    Message
+                  </h4>
                   <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                     {selectedNotification.message}
                   </p>
                 </div>
-                
+
                 {/* Additional Data */}
                 {selectedNotification.data && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Additional Information</h4>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">
+                      Additional Information
+                    </h4>
                     <div className="bg-gray-50 p-3 rounded-lg">
                       <pre className="text-xs text-gray-600 whitespace-pre-wrap">
                         {JSON.stringify(selectedNotification.data, null, 2)}
@@ -567,23 +702,31 @@ const AdminNotifications = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-4 border-t">
                   <div className="flex items-center space-x-2">
-                    <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${
-                      selectedNotification.read ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {selectedNotification.read ? 'Read' : 'Unread'}
+                    <span
+                      className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${
+                        selectedNotification.read
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {selectedNotification.read ? "Read" : "Unread"}
                     </span>
                     <span className="text-xs text-gray-500 capitalize">
-                      {selectedNotification.type.replace('_', ' ').toLowerCase()}
+                      {selectedNotification.type
+                        .replace("_", " ")
+                        .toLowerCase()}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => navigateToRelatedItem(selectedNotification)}
+                      onClick={() =>
+                        navigateToRelatedItem(selectedNotification)
+                      }
                       className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
                       <ExternalLink className="h-4 w-4 mr-1" />

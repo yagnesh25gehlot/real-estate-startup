@@ -5,21 +5,13 @@ import path from 'path';
 import { BookingService } from './service';
 import { authMiddleware } from '../auth/middleware';
 import { AuthenticatedRequest } from '../auth/types';
+import { S3Uploader } from '../../utils/s3Uploader';
 
 const router = express.Router();
 
-// Configure multer for payment proof uploads
-const paymentsStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(process.cwd(), 'uploads', 'payments'));
-  },
-  filename: (req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `${unique}-${file.originalname}`);
-  },
-});
+// Configure multer for payment proof uploads (memory storage for S3)
 const uploadPaymentProof = multer({
-  storage: paymentsStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) return cb(null, true);
@@ -42,14 +34,31 @@ router.post('/create', [
     }
 
     const { propertyId, dealerCode, paymentRef } = req.body as any;
-    const filePath = req.file ? `/uploads/payments/${path.basename(req.file.path)}` : undefined;
+    
+    console.log('🔍 Booking Route Debug - Request body:', req.body);
+    console.log('🔍 Booking Route Debug - Property ID:', propertyId);
+    console.log('🔍 Booking Route Debug - User ID:', req.user!.id);
+    
+    let paymentProofUrl = undefined;
+    if (req.file) {
+      try {
+        const uploadResult = await S3Uploader.uploadDocument(req.file, 'payments');
+        paymentProofUrl = uploadResult.url;
+      } catch (uploadError) {
+        console.error('Failed to upload payment proof to S3:', uploadError);
+        return res.status(400).json({
+          success: false,
+          error: 'Failed to upload payment proof',
+        });
+      }
+    }
 
     const result = await BookingService.createManualBooking({
       propertyId,
       userId: req.user!.id,
       dealerCode,
       paymentRef,
-      paymentProof: filePath,
+      paymentProof: paymentProofUrl,
     });
 
     res.json({ success: true, data: result });

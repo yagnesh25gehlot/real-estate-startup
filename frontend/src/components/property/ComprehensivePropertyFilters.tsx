@@ -61,6 +61,7 @@ interface PropertyFilters {
 
   // Location Details
   city: string;
+  state: string;
   locality: string;
   landmark: string;
   minLatitude?: number;
@@ -337,6 +338,38 @@ const ComprehensivePropertyFilters: React.FC<
                         handleFilterChange("location", e.target.value)
                       }
                       placeholder="Enter city or location"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* City */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      value={filters.city}
+                      onChange={(e) =>
+                        handleFilterChange("city", e.target.value)
+                      }
+                      placeholder="Enter city name"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* State */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      State
+                    </label>
+                    <input
+                      type="text"
+                      value={filters.state}
+                      onChange={(e) =>
+                        handleFilterChange("state", e.target.value)
+                      }
+                      placeholder="Enter state name"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>

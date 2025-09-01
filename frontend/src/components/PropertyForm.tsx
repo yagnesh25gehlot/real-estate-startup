@@ -1,6 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-hot-toast";
+import {
+  showError,
+  showSuccess,
+  showWarning,
+} from "../utils/errorNotifications";
 import { X, Upload } from "lucide-react";
 import { api, propertiesApi } from "../services/api";
 import ListingFeeModal from "./ListingFeeModal";
@@ -9,6 +13,21 @@ interface FormData {
   title: string;
   type: string;
   action: string;
+  // New address fields
+  city: string;
+  state: string;
+  pincode: string;
+  locality: string;
+  street: string;
+  landmark: string;
+  subRegion: string;
+  // Property type specific fields
+  flatNumber: string;
+  buildingName: string;
+  shopNumber: string;
+  complexName: string;
+  plotNumber: string;
+  // Legacy fields
   location: string;
   address: string;
   latitude?: string;
@@ -79,6 +98,21 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
     title: "",
     type: "",
     action: "RENT",
+    // New address fields
+    city: "",
+    state: "",
+    pincode: "",
+    locality: "",
+    street: "",
+    landmark: "",
+    subRegion: "",
+    // Property type specific fields
+    flatNumber: "",
+    buildingName: "",
+    shopNumber: "",
+    complexName: "",
+    plotNumber: "",
+    // Legacy fields
     location: "",
     address: "",
     latitude: "",
@@ -144,6 +178,21 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
         title: property.title || "",
         type: property.type || "",
         action: property.action || "RENT",
+        // New address fields
+        city: property.city || "",
+        state: property.state || "",
+        pincode: property.pincode || "",
+        locality: property.locality || "",
+        street: property.street || "",
+        landmark: property.landmark || "",
+        subRegion: property.subRegion || "",
+        // Property type specific fields
+        flatNumber: property.flatNumber || "",
+        buildingName: property.buildingName || "",
+        shopNumber: property.shopNumber || "",
+        complexName: property.complexName || "",
+        plotNumber: property.plotNumber || "",
+        // Legacy fields
         location: property.location || "",
         address: property.address || "",
         latitude: property.latitude || "",
@@ -257,11 +306,17 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
     if (isEmpty(formData.action)) {
       errors.push({ field: "action", message: "Action is required" });
     }
-    if (isEmpty(formData.location)) {
-      errors.push({ field: "location", message: "City is required" });
+    if (isEmpty(formData.city)) {
+      errors.push({ field: "city", message: "City is required" });
     }
-    if (isEmpty(formData.address)) {
-      errors.push({ field: "address", message: "Address is required" });
+    if (isEmpty(formData.state)) {
+      errors.push({ field: "state", message: "State is required" });
+    }
+    if (isEmpty(formData.locality)) {
+      errors.push({
+        field: "locality",
+        message: "Locality/Area/Layout is required",
+      });
     }
     if (isEmpty(formData.area)) {
       errors.push({ field: "area", message: "Area is required" });
@@ -382,18 +437,15 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
 
       // Show comprehensive error message
       if (errors.length === 1) {
-        toast.error(errors[0].message);
+        showError(new Error(errors[0].message), "property");
       } else {
         const errorMessages = errors
           .map((error) => `• ${error.message}`)
           .join("\n");
-        toast.error(`Please fix the following errors:\n${errorMessages}`, {
-          duration: 5000,
-          style: {
-            whiteSpace: "pre-line",
-            maxWidth: "400px",
-          },
-        });
+        showError(
+          new Error(`Please fix the following errors:\n${errorMessages}`),
+          "property"
+        );
       }
 
       // Scroll to first error field
@@ -505,7 +557,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
         console.log("📤 Updating property...");
         response = await propertiesApi.update(property.id, formDataToSubmit);
         console.log("✅ Property updated successfully:", response);
-        toast.success("Property updated successfully!");
+        showSuccess("Property updated successfully!", "Success");
         if (onSave) onSave(response.data);
         if (onClose) onClose();
       }
@@ -514,10 +566,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
         `Error ${mode === "create" ? "creating" : "updating"} property:`,
         error
       );
-      toast.error(
-        error.message ||
-          `Failed to ${mode === "create" ? "create" : "update"} property`
-      );
+      showError(error, "property");
     } finally {
       setIsSubmitting(false);
     }
@@ -802,86 +851,332 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
                 {showFieldError("mobileNumber")}
               </div>
 
-              {/* City */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  City <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      location: e.target.value,
-                    }))
-                  }
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    fieldErrors.location ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="Enter city name"
-                />
-                {showFieldError("location")}
+              {/* Basic Address Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    City <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        city: e.target.value,
+                      }))
+                    }
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      fieldErrors.city ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="e.g., Bangalore, Mumbai, Delhi"
+                  />
+                  {showFieldError("city")}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    State <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="state"
+                    value={formData.state}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        state: e.target.value,
+                      }))
+                    }
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      fieldErrors.state ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="e.g., Karnataka, Maharashtra, Delhi"
+                  />
+                  {showFieldError("state")}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Pincode{" "}
+                    <span className="text-gray-500 text-sm">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        pincode: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., 560001"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Locality / Area / Layout{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="locality"
+                    value={formData.locality}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        locality: e.target.value,
+                      }))
+                    }
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      fieldErrors.locality
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="e.g., BTM Layout, Koramangala, Whitefield"
+                  />
+                  {showFieldError("locality")}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Street / Road{" "}
+                    <span className="text-gray-500 text-sm">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="street"
+                    value={formData.street}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        street: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Chocolate Factory Road, MG Road"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Landmark{" "}
+                    <span className="text-gray-500 text-sm">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="landmark"
+                    value={formData.landmark}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        landmark: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Near Forum Mall, Opposite Metro Station"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sub-region / Zone{" "}
+                    <span className="text-gray-500 text-sm">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="subRegion"
+                    value={formData.subRegion}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        subRegion: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., South Bengaluru, North Mumbai"
+                  />
+                </div>
               </div>
+
+              {/* Property Type Specific Fields */}
+              {(formData.type === "APARTMENT" ||
+                formData.type === "HOUSE" ||
+                formData.type === "VILLA") && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Property Type Specific Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Flat / Door Number{" "}
+                        <span className="text-gray-500 text-sm">
+                          (Optional)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        name="flatNumber"
+                        value={formData.flatNumber}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            flatNumber: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., A-101, Flat 5"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Building / Apartment Name{" "}
+                        <span className="text-gray-500 text-sm">
+                          (Optional)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        name="buildingName"
+                        value={formData.buildingName}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            buildingName: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., Sunshine Apartments, Green Valley"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(formData.type === "COMMERCIAL" || formData.type === "SHOP") && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Property Type Specific Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Shop / Unit Number{" "}
+                        <span className="text-gray-500 text-sm">
+                          (Optional)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        name="shopNumber"
+                        value={formData.shopNumber}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            shopNumber: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., Shop 15, Unit A-2"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Complex / Market Name{" "}
+                        <span className="text-gray-500 text-sm">
+                          (Optional)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        name="complexName"
+                        value={formData.complexName}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            complexName: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., Phoenix MarketCity, Forum Mall"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {formData.type === "PLOT" && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Property Type Specific Information
+                  </h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Plot / Survey Number{" "}
+                      <span className="text-gray-500 text-sm">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="plotNumber"
+                      value={formData.plotNumber}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          plotNumber: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g., Survey No. 123, Plot 45"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Address with Location Button */}
+            {/* Location Detection Button */}
             <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      address: e.target.value,
-                    }))
-                  }
-                  className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    fieldErrors.address ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="Enter complete address"
-                />
-                <button
-                  type="button"
-                  onClick={getCurrentLocation}
-                  disabled={isGettingLocation}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isGettingLocation ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  ) : (
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={getCurrentLocation}
+                disabled={isGettingLocation}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isGettingLocation ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                )}
+                Get Current Location
+              </button>
               <p className="text-xs text-gray-500 mt-1">
-                Click the location button to automatically detect your current
-                address
+                Click to automatically detect your current location and fill in
+                coordinates (hidden from UI)
               </p>
-              {showFieldError("address")}
               {formData.latitude && formData.longitude && (
                 <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
                   <p className="text-xs text-green-700">

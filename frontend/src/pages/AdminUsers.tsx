@@ -1,253 +1,275 @@
-import React, { useState, useEffect } from 'react'
-import { Helmet } from 'react-helmet-async'
-import { useNavigate } from 'react-router-dom'
-import { 
-  ArrowLeft, 
-  Users, 
-  Mail, 
-  Calendar, 
-  Shield, 
-  Phone, 
-  CreditCard, 
-  Hash, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  Ban, 
-  CheckCircle, 
-  X, 
-  ZoomIn, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Save, 
+import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
+import { useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  Users,
+  Mail,
+  Calendar,
+  Shield,
+  Phone,
+  CreditCard,
+  Hash,
+  Lock,
+  Eye,
+  EyeOff,
+  Ban,
+  CheckCircle,
+  X,
+  ZoomIn,
+  Plus,
+  Edit,
+  Trash2,
+  Save,
   Camera,
-  Upload
-} from 'lucide-react'
-import { adminApi } from '../services/api'
-import LoadingSpinner from '../components/LoadingSpinner'
-import toast from 'react-hot-toast'
+  Upload,
+} from "lucide-react";
+import { adminApi } from "../services/api";
+import LoadingSpinner from "../components/LoadingSpinner";
+import toast from "react-hot-toast";
+import { getImageUrl } from "../utils/imageUtils";
 
 const AdminUsers = () => {
-  const [users, setUsers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [passwordVisibility, setPasswordVisibility] = useState<{ [key: string]: boolean }>({})
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  const [showImageModal, setShowImageModal] = useState(false)
-  const [blockingUser, setBlockingUser] = useState<string | null>(null)
-  const [editingUser, setEditingUser] = useState<string | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showPasswordModal, setShowPasswordModal] = useState<string | null>(null)
-  const [deletingUser, setDeletingUser] = useState<string | null>(null)
-  const [uploadingProfilePic, setUploadingProfilePic] = useState<string | null>(null)
-  const [uploadingAadhaarImage, setUploadingAadhaarImage] = useState<string | null>(null)
-  const navigate = useNavigate()
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [passwordVisibility, setPasswordVisibility] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [blockingUser, setBlockingUser] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState<string | null>(
+    null
+  );
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const [uploadingProfilePic, setUploadingProfilePic] = useState<string | null>(
+    null
+  );
+  const [uploadingAadhaarImage, setUploadingAadhaarImage] = useState<
+    string | null
+  >(null);
+  const navigate = useNavigate();
 
   // Form states
   const [editForm, setEditForm] = useState({
-    name: '',
-    mobile: '',
-    aadhaar: '',
-    role: 'USER' as 'USER' | 'DEALER' | 'ADMIN'
-  })
+    name: "",
+    mobile: "",
+    aadhaar: "",
+    role: "USER" as "USER" | "DEALER" | "ADMIN",
+  });
 
   const [passwordForm, setPasswordForm] = useState({
-    password: '',
-    confirmPassword: ''
-  })
+    password: "",
+    confirmPassword: "",
+  });
 
   const [createForm, setCreateForm] = useState({
-    email: '',
-    name: '',
-    password: '',
-    mobile: '',
-    aadhaar: '',
-    role: 'USER' as 'USER' | 'DEALER' | 'ADMIN'
-  })
+    email: "",
+    name: "",
+    password: "",
+    mobile: "",
+    aadhaar: "",
+    role: "USER" as "USER" | "DEALER" | "ADMIN",
+  });
 
   const fetchUsers = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await adminApi.getAllUsers()
-      setUsers(response.data.data || [])
-      
+      setLoading(true);
+      setError(null);
+
+      const response = await adminApi.getAllUsers();
+      setUsers(response.data.data || []);
     } catch (error: any) {
-      console.error('Failed to fetch users:', error)
-      setError(error.response?.data?.error || 'Failed to load users')
-      toast.error('Failed to load users')
+      console.error("Failed to fetch users:", error);
+      setError(error.response?.data?.error || "Failed to load users");
+      toast.error("Failed to load users");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    fetchUsers();
+  }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     try {
-      const response = await adminApi.createUser(createForm)
-      toast.success('User created successfully')
-      setShowCreateModal(false)
+      const response = await adminApi.createUser(createForm);
+      toast.success("User created successfully");
+      setShowCreateModal(false);
       setCreateForm({
-        email: '',
-        name: '',
-        password: '',
-        mobile: '',
-        aadhaar: '',
-        role: 'USER'
-      })
-      fetchUsers()
+        email: "",
+        name: "",
+        password: "",
+        mobile: "",
+        aadhaar: "",
+        role: "USER",
+      });
+      fetchUsers();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to create user')
+      toast.error(error.response?.data?.error || "Failed to create user");
     }
-  }
+  };
 
   const handleUpdateUser = async (userId: string) => {
     try {
-      await adminApi.updateUser(userId, editForm)
-      toast.success('User updated successfully')
-      setEditingUser(null)
+      await adminApi.updateUser(userId, editForm);
+      toast.success("User updated successfully");
+      setEditingUser(null);
       setEditForm({
-        name: '',
-        mobile: '',
-        aadhaar: '',
-        role: 'USER'
-      })
-      fetchUsers()
+        name: "",
+        mobile: "",
+        aadhaar: "",
+        role: "USER",
+      });
+      fetchUsers();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update user')
+      toast.error(error.response?.data?.error || "Failed to update user");
     }
-  }
+  };
 
   const handleUpdatePassword = async (userId: string) => {
     if (passwordForm.password !== passwordForm.confirmPassword) {
-      toast.error('Passwords do not match')
-      return
+      toast.error("Passwords do not match");
+      return;
     }
 
     if (passwordForm.password.length < 8) {
-      toast.error('Password must be at least 8 characters long')
-      return
+      toast.error("Password must be at least 8 characters long");
+      return;
     }
 
     try {
-      await adminApi.updateUserPassword(userId, passwordForm.password)
-      toast.success('Password updated successfully')
-      setShowPasswordModal(null)
+      await adminApi.updateUserPassword(userId, passwordForm.password);
+      toast.success("Password updated successfully");
+      setShowPasswordModal(null);
       setPasswordForm({
-        password: '',
-        confirmPassword: ''
-      })
+        password: "",
+        confirmPassword: "",
+      });
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update password')
+      toast.error(error.response?.data?.error || "Failed to update password");
     }
-  }
+  };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this user? This action cannot be undone."
+      )
+    ) {
+      return;
     }
 
     try {
-      setDeletingUser(userId)
-      await adminApi.deleteUser(userId)
-      toast.success('User deleted successfully')
-      fetchUsers()
+      setDeletingUser(userId);
+      await adminApi.deleteUser(userId);
+      toast.success("User deleted successfully");
+      fetchUsers();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to delete user')
+      toast.error(error.response?.data?.error || "Failed to delete user");
     } finally {
-      setDeletingUser(null)
+      setDeletingUser(null);
     }
-  }
+  };
 
-  const handleProfilePicUpload = async (userId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleProfilePicUpload = async (
+    userId: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
-      return
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB')
-      return
+      toast.error("Image size should be less than 5MB");
+      return;
     }
 
-    setUploadingProfilePic(userId)
-    
+    setUploadingProfilePic(userId);
+
     try {
-      const formData = new FormData()
-      formData.append('profilePic', file)
-      
-      await adminApi.uploadUserProfilePic(userId, formData)
-      toast.success('Profile picture updated successfully')
-      fetchUsers()
+      const formData = new FormData();
+      formData.append("profilePic", file);
+
+      await adminApi.uploadUserProfilePic(userId, formData);
+      toast.success("Profile picture updated successfully");
+      fetchUsers();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to upload profile picture')
+      toast.error(
+        error.response?.data?.error || "Failed to upload profile picture"
+      );
     } finally {
-      setUploadingProfilePic(null)
+      setUploadingProfilePic(null);
     }
-  }
+  };
 
-  const handleAadhaarImageUpload = async (userId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleAadhaarImageUpload = async (
+    userId: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
-      return
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB')
-      return
+      toast.error("Image size should be less than 5MB");
+      return;
     }
 
-    setUploadingAadhaarImage(userId)
-    
+    setUploadingAadhaarImage(userId);
+
     try {
-      const formData = new FormData()
-      formData.append('aadhaarImage', file)
-      
-      await adminApi.uploadUserAadhaarImage(userId, formData)
-      toast.success('Aadhaar image updated successfully')
-      fetchUsers()
+      const formData = new FormData();
+      formData.append("aadhaarImage", file);
+
+      await adminApi.uploadUserAadhaarImage(userId, formData);
+      toast.success("Aadhaar image updated successfully");
+      fetchUsers();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to upload aadhaar image')
+      toast.error(
+        error.response?.data?.error || "Failed to upload aadhaar image"
+      );
     } finally {
-      setUploadingAadhaarImage(null)
+      setUploadingAadhaarImage(null);
     }
-  }
+  };
 
   const startEditing = (user: any) => {
-    setEditingUser(user.id)
+    setEditingUser(user.id);
     setEditForm({
-      name: user.name || '',
-      mobile: user.mobile || '',
-      aadhaar: user.aadhaar || '',
-      role: user.role || 'USER'
-    })
-  }
+      name: user.name || "",
+      mobile: user.mobile || "",
+      aadhaar: user.aadhaar || "",
+      role: user.role || "USER",
+    });
+  };
 
   const cancelEditing = () => {
-    setEditingUser(null)
+    setEditingUser(null);
     setEditForm({
-      name: '',
-      mobile: '',
-      aadhaar: '',
-      role: 'USER'
-    })
-  }
+      name: "",
+      mobile: "",
+      aadhaar: "",
+      role: "USER",
+    });
+  };
 
   if (loading) {
-    return <LoadingSpinner />
+    return <LoadingSpinner />;
   }
 
   if (error) {
@@ -255,7 +277,7 @@ const AdminUsers = () => {
       <div className="max-w-7xl mx-auto p-6">
         <div className="text-center py-12">
           <div className="text-red-600 text-lg font-medium mb-4">{error}</div>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
@@ -263,64 +285,64 @@ const AdminUsers = () => {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'ADMIN':
-        return 'bg-red-100 text-red-800'
-      case 'DEALER':
-        return 'bg-blue-100 text-blue-800'
-      case 'USER':
-        return 'bg-green-100 text-green-800'
+      case "ADMIN":
+        return "bg-red-100 text-red-800";
+      case "DEALER":
+        return "bg-blue-100 text-blue-800";
+      case "USER":
+        return "bg-green-100 text-green-800";
       default:
-        return 'bg-gray-100 text-gray-800'
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
   const togglePasswordVisibility = (userId: string) => {
-    setPasswordVisibility(prev => ({
+    setPasswordVisibility((prev) => ({
       ...prev,
-      [userId]: !prev[userId]
-    }))
-  }
+      [userId]: !prev[userId],
+    }));
+  };
 
   const handleBlockUser = async (userId: string) => {
     try {
-      setBlockingUser(userId)
-      await adminApi.blockUser(userId)
-      toast.success('User blocked successfully')
-      fetchUsers()
+      setBlockingUser(userId);
+      await adminApi.blockUser(userId);
+      toast.success("User blocked successfully");
+      fetchUsers();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to block user')
+      toast.error(error.response?.data?.error || "Failed to block user");
     } finally {
-      setBlockingUser(null)
+      setBlockingUser(null);
     }
-  }
+  };
 
   const handleUnblockUser = async (userId: string) => {
     try {
-      setBlockingUser(userId)
-      await adminApi.unblockUser(userId)
-      toast.success('User unblocked successfully')
-      fetchUsers()
+      setBlockingUser(userId);
+      await adminApi.unblockUser(userId);
+      toast.success("User unblocked successfully");
+      fetchUsers();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to unblock user')
+      toast.error(error.response?.data?.error || "Failed to unblock user");
     } finally {
-      setBlockingUser(null)
+      setBlockingUser(null);
     }
-  }
+  };
 
   const openImageModal = (imageUrl: string) => {
-    setSelectedImage(imageUrl)
-    setShowImageModal(true)
-  }
+    setSelectedImage(imageUrl);
+    setShowImageModal(true);
+  };
 
   const closeImageModal = () => {
-    setShowImageModal(false)
-    setSelectedImage(null)
-  }
+    setShowImageModal(false);
+    setSelectedImage(null);
+  };
 
   return (
     <>
@@ -333,7 +355,7 @@ const AdminUsers = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={() => navigate('/admin')}
+              onClick={() => navigate("/admin")}
               className="flex items-center text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
@@ -358,8 +380,12 @@ const AdminUsers = () => {
           {users.length === 0 ? (
             <div className="p-8 text-center">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Users Found</h3>
-              <p className="text-gray-600">There are no users to display at the moment.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Users Found
+              </h3>
+              <p className="text-gray-600">
+                There are no users to display at the moment.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -406,18 +432,24 @@ const AdminUsers = () => {
                           <div className="relative">
                             <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
                               {user.profilePic ? (
-                                <img 
-                                  src={user.profilePic.startsWith('/uploads/') ? `${import.meta.env.PROD ? window.location.origin : (import.meta.env.VITE_API_URL || 'http://localhost:3001')}${user.profilePic}` : user.profilePic} 
-                                  alt="Profile" 
+                                <img
+                                  src={getImageUrl(user.profilePic)}
+                                  alt="Profile"
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
-                                    e.currentTarget.style.display = 'none'
-                                    e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                                    e.currentTarget.style.display = "none";
+                                    e.currentTarget.nextElementSibling?.classList.remove(
+                                      "hidden"
+                                    );
                                   }}
                                 />
                               ) : null}
-                              {!user.profilePic && <Users className="h-5 w-5 text-gray-600" />}
-                              {user.profilePic && <Users className="h-5 w-5 text-gray-600 hidden" />}
+                              {!user.profilePic && (
+                                <Users className="h-5 w-5 text-gray-600" />
+                              )}
+                              {user.profilePic && (
+                                <Users className="h-5 w-5 text-gray-600 hidden" />
+                              )}
                             </div>
                             {editingUser === user.id && (
                               <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-1 rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
@@ -425,7 +457,9 @@ const AdminUsers = () => {
                                 <input
                                   type="file"
                                   accept="image/*"
-                                  onChange={(e) => handleProfilePicUpload(user.id, e)}
+                                  onChange={(e) =>
+                                    handleProfilePicUpload(user.id, e)
+                                  }
                                   className="hidden"
                                   disabled={uploadingProfilePic === user.id}
                                 />
@@ -438,11 +472,16 @@ const AdminUsers = () => {
                                 <input
                                   type="text"
                                   value={editForm.name}
-                                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                  onChange={(e) =>
+                                    setEditForm({
+                                      ...editForm,
+                                      name: e.target.value,
+                                    })
+                                  }
                                   className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
                                 />
                               ) : (
-                                user.name || 'Unknown User'
+                                user.name || "Unknown User"
                               )}
                             </div>
                             <div className="text-sm text-gray-500">
@@ -465,13 +504,18 @@ const AdminUsers = () => {
                               <input
                                 type="tel"
                                 value={editForm.mobile}
-                                onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })}
+                                onChange={(e) =>
+                                  setEditForm({
+                                    ...editForm,
+                                    mobile: e.target.value,
+                                  })
+                                }
                                 className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
                                 placeholder="Mobile number"
                               />
                             ) : (
                               <div className="text-sm text-gray-600">
-                                {user.mobile || 'Not provided'}
+                                {user.mobile || "Not provided"}
                               </div>
                             )}
                           </div>
@@ -482,21 +526,33 @@ const AdminUsers = () => {
                           <div className="flex items-center">
                             <Lock className="h-4 w-4 text-gray-400 mr-2" />
                             <div className="text-sm text-gray-900 font-mono">
-                              {passwordVisibility[user.id] ? user.password : '••••••••'}
+                              {passwordVisibility[user.id]
+                                ? user.password
+                                : "••••••••"}
                             </div>
                             <button
                               onClick={() => togglePasswordVisibility(user.id)}
                               className="ml-2 text-gray-400 hover:text-gray-600"
-                              title={passwordVisibility[user.id] ? 'Hide password' : 'Show password'}
+                              title={
+                                passwordVisibility[user.id]
+                                  ? "Hide password"
+                                  : "Show password"
+                              }
                             >
-                              {passwordVisibility[user.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              {passwordVisibility[user.id] ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
                             </button>
                             <div className="text-xs text-gray-500 ml-2">
                               (Hashed)
                             </div>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-500">No password</span>
+                          <span className="text-sm text-gray-500">
+                            No password
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -504,39 +560,48 @@ const AdminUsers = () => {
                           <input
                             type="text"
                             value={editForm.aadhaar}
-                            onChange={(e) => setEditForm({ ...editForm, aadhaar: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                aadhaar: e.target.value,
+                              })
+                            }
                             className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
                             placeholder="12-digit Aadhaar"
                             maxLength={12}
                           />
-                        ) : (
-                          user.aadhaar ? (
-                            <div className="flex items-center">
-                              <CreditCard className="h-4 w-4 text-gray-400 mr-2" />
-                              <div className="text-sm text-gray-900 font-mono">
-                                {user.aadhaar}
-                              </div>
+                        ) : user.aadhaar ? (
+                          <div className="flex items-center">
+                            <CreditCard className="h-4 w-4 text-gray-400 mr-2" />
+                            <div className="text-sm text-gray-900 font-mono">
+                              {user.aadhaar}
                             </div>
-                          ) : (
-                            <span className="text-sm text-gray-500">Not provided</span>
-                          )
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-500">
+                            Not provided
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           {user.aadhaarImage ? (
                             <>
-                              <img 
-                                src={user.aadhaarImage.startsWith('/uploads/') ? `${import.meta.env.PROD ? window.location.origin : (import.meta.env.VITE_API_URL || 'http://localhost:3001')}${user.aadhaarImage}` : user.aadhaarImage} 
-                                alt="Aadhaar" 
+                              <img
+                                src={getImageUrl(user.aadhaarImage)}
+                                alt="Aadhaar"
                                 className="h-8 w-12 object-cover rounded border cursor-pointer hover:opacity-80"
-                                onClick={() => openImageModal(user.aadhaarImage.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${user.aadhaarImage}` : user.aadhaarImage)}
+                                onClick={() =>
+                                  openImageModal(getImageUrl(user.aadhaarImage))
+                                }
                                 onError={(e) => {
-                                  e.currentTarget.style.display = 'none'
+                                  e.currentTarget.style.display = "none";
                                 }}
                               />
                               <button
-                                onClick={() => openImageModal(user.aadhaarImage.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${user.aadhaarImage}` : user.aadhaarImage)}
+                                onClick={() =>
+                                  openImageModal(getImageUrl(user.aadhaarImage))
+                                }
                                 className="text-blue-600 hover:text-blue-800"
                                 title="View full size"
                               >
@@ -544,18 +609,26 @@ const AdminUsers = () => {
                               </button>
                             </>
                           ) : (
-                            <span className="text-sm text-gray-500">No image</span>
+                            <span className="text-sm text-gray-500">
+                              No image
+                            </span>
                           )}
                           {editingUser === user.id && (
                             <label className="cursor-pointer">
                               <div className="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800">
                                 <Upload className="h-4 w-4" />
-                                <span>{uploadingAadhaarImage === user.id ? 'Uploading...' : 'Upload'}</span>
+                                <span>
+                                  {uploadingAadhaarImage === user.id
+                                    ? "Uploading..."
+                                    : "Upload"}
+                                </span>
                               </div>
                               <input
                                 type="file"
                                 accept="image/*"
-                                onChange={(e) => handleAadhaarImageUpload(user.id, e)}
+                                onChange={(e) =>
+                                  handleAadhaarImageUpload(user.id, e)
+                                }
                                 className="hidden"
                                 disabled={uploadingAadhaarImage === user.id}
                               />
@@ -567,7 +640,15 @@ const AdminUsers = () => {
                         {editingUser === user.id ? (
                           <select
                             value={editForm.role}
-                            onChange={(e) => setEditForm({ ...editForm, role: e.target.value as 'USER' | 'DEALER' | 'ADMIN' })}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                role: e.target.value as
+                                  | "USER"
+                                  | "DEALER"
+                                  | "ADMIN",
+                              })
+                            }
                             className="border border-gray-300 rounded px-2 py-1 text-sm"
                           >
                             <option value="USER">USER</option>
@@ -575,37 +656,43 @@ const AdminUsers = () => {
                             <option value="ADMIN">ADMIN</option>
                           </select>
                         ) : (
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(
+                              user.role
+                            )}`}
+                          >
                             <Shield className="h-3 w-3 mr-1" />
                             {user.role}
                           </span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {(user.dealer || user.role === 'ADMIN') ? (
+                        {user.dealer || user.role === "ADMIN" ? (
                           <div className="space-y-1">
                             <div className="flex items-center">
                               <Hash className="h-4 w-4 text-gray-400 mr-2" />
                               <div className="text-sm text-gray-900 font-medium">
-                                {user.dealer?.referralCode || user.id || 'N/A'}
+                                {user.dealer?.referralCode || user.id || "N/A"}
                               </div>
                             </div>
                             <div className="text-xs text-gray-500">
-                              Status: {user.dealer?.status || 'ACTIVE'}
+                              Status: {user.dealer?.status || "ACTIVE"}
                             </div>
                             {user.dealer?.commission > 0 && (
                               <div className="text-xs text-green-600">
                                 Commission: ₹{user.dealer.commission}
                               </div>
                             )}
-                            {user.role === 'ADMIN' && (
+                            {user.role === "ADMIN" && (
                               <div className="text-xs text-purple-600">
                                 Admin Dealer Code
                               </div>
                             )}
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-500">Not a dealer</span>
+                          <span className="text-sm text-gray-500">
+                            Not a dealer
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -616,16 +703,18 @@ const AdminUsers = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            user.status === 'BLOCKED' 
-                              ? 'bg-red-100 text-red-800' 
-                              : 'bg-green-100 text-green-800'
-                          }`}>
-                            {user.status === 'BLOCKED' ? 'Blocked' : 'Active'}
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.status === "BLOCKED"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {user.status === "BLOCKED" ? "Blocked" : "Active"}
                           </span>
-                          {user.role !== 'ADMIN' && (
+                          {user.role !== "ADMIN" && (
                             <div className="flex space-x-1">
-                              {user.status === 'BLOCKED' ? (
+                              {user.status === "BLOCKED" ? (
                                 <button
                                   onClick={() => handleUnblockUser(user.id)}
                                   disabled={blockingUser === user.id}
@@ -683,7 +772,7 @@ const AdminUsers = () => {
                               >
                                 <Lock className="h-4 w-4" />
                               </button>
-                              {user.role !== 'ADMIN' && (
+                              {user.role !== "ADMIN" && (
                                 <button
                                   onClick={() => handleDeleteUser(user.id)}
                                   disabled={deletingUser === user.id}
@@ -728,7 +817,9 @@ const AdminUsers = () => {
                   type="email"
                   required
                   value={createForm.email}
-                  onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, email: e.target.value })
+                  }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="user@example.com"
                 />
@@ -741,7 +832,9 @@ const AdminUsers = () => {
                   type="text"
                   required
                   value={createForm.name}
-                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, name: e.target.value })
+                  }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Full name"
                 />
@@ -753,7 +846,9 @@ const AdminUsers = () => {
                 <input
                   type="password"
                   value={createForm.password}
-                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, password: e.target.value })
+                  }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Leave empty for OAuth users"
                 />
@@ -765,7 +860,9 @@ const AdminUsers = () => {
                 <input
                   type="tel"
                   value={createForm.mobile}
-                  onChange={(e) => setCreateForm({ ...createForm, mobile: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, mobile: e.target.value })
+                  }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Mobile number"
                 />
@@ -777,7 +874,9 @@ const AdminUsers = () => {
                 <input
                   type="text"
                   value={createForm.aadhaar}
-                  onChange={(e) => setCreateForm({ ...createForm, aadhaar: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, aadhaar: e.target.value })
+                  }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="12-digit Aadhaar number"
                   maxLength={12}
@@ -789,7 +888,12 @@ const AdminUsers = () => {
                 </label>
                 <select
                   value={createForm.role}
-                  onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as 'USER' | 'DEALER' | 'ADMIN' })}
+                  onChange={(e) =>
+                    setCreateForm({
+                      ...createForm,
+                      role: e.target.value as "USER" | "DEALER" | "ADMIN",
+                    })
+                  }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="USER">USER</option>
@@ -839,12 +943,19 @@ const AdminUsers = () => {
                   type="password"
                   required
                   value={passwordForm.password}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      password: e.target.value,
+                    })
+                  }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter new password"
                   minLength={8}
                 />
-                <p className="text-xs text-gray-500 mt-1">Password must be at least 8 characters long</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Password must be at least 8 characters long
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -854,7 +965,12 @@ const AdminUsers = () => {
                   type="password"
                   required
                   value={passwordForm.confirmPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      confirmPassword: e.target.value,
+                    })
+                  }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Confirm new password"
                   minLength={8}
@@ -898,8 +1014,10 @@ const AdminUsers = () => {
                 alt="Aadhaar Card"
                 className="max-w-full max-h-[70vh] object-contain rounded border"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                  e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.nextElementSibling?.classList.remove(
+                    "hidden"
+                  );
                 }}
               />
               <div className="hidden text-center text-gray-500">
@@ -910,7 +1028,7 @@ const AdminUsers = () => {
         </div>
       )}
     </>
-  )
-}
+  );
+};
 
-export default AdminUsers
+export default AdminUsers;

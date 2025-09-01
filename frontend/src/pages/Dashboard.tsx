@@ -21,6 +21,7 @@ import { bookingsApi, dealersApi, propertiesApi } from "../services/api";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PropertyEditModal from "../components/PropertyEditModal";
 import toast from "react-hot-toast";
+import { getImageUrl } from "../utils/imageUtils";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -428,14 +429,7 @@ const Dashboard = () => {
                                 ? JSON.parse(booking.property.mediaUrls)
                                 : booking.property.mediaUrls
                               : [];
-                            return mediaUrlsArray?.[0]
-                              ? import.meta.env.PROD
-                                ? `${window.location.origin}${mediaUrlsArray[0]}`
-                                : `${
-                                    import.meta.env.VITE_API_URL ||
-                                    "http://localhost:3001"
-                                  }${mediaUrlsArray[0]}`
-                              : "/placeholder-property.svg";
+                            return getImageUrl(mediaUrlsArray?.[0] || "");
                           })()}
                           alt={booking.property.title}
                           className="w-full sm:w-20 h-40 sm:h-20 object-cover rounded-lg flex-shrink-0"
@@ -542,23 +536,11 @@ const Dashboard = () => {
                             Payment Proof:
                           </p>
                           <a
-                            href={
-                              import.meta.env.PROD
-                                ? `${window.location.origin}${booking.paymentProof}`
-                                : `${
-                                    import.meta.env.VITE_API_URL ||
-                                    "http://localhost:3001"
-                                  }${booking.paymentProof}`
-                            }
+                            href={getImageUrl(booking.paymentProof)}
                             onClick={(e) => {
                               e.preventDefault();
                               window.open(
-                                import.meta.env.PROD
-                                  ? `${window.location.origin}${booking.paymentProof}`
-                                  : `${
-                                      import.meta.env.VITE_API_URL ||
-                                      "http://localhost:3001"
-                                    }${booking.paymentProof}`,
+                                getImageUrl(booking.paymentProof),
                                 "_blank"
                               );
                             }}
@@ -658,14 +640,7 @@ const Dashboard = () => {
                                 ? JSON.parse(property.mediaUrls)
                                 : property.mediaUrls
                               : [];
-                            return mediaUrlsArray?.[0]
-                              ? import.meta.env.PROD
-                                ? `${window.location.origin}${mediaUrlsArray[0]}`
-                                : `${
-                                    import.meta.env.VITE_API_URL ||
-                                    "http://localhost:3001"
-                                  }${mediaUrlsArray[0]}`
-                              : "/placeholder-property.svg";
+                            return getImageUrl(mediaUrlsArray?.[0] || "");
                           })()}
                           alt={property.title}
                           className="w-full sm:w-24 h-48 sm:h-24 object-cover rounded-lg flex-shrink-0"

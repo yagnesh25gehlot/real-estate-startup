@@ -8,7 +8,11 @@ import {
   CreditCard,
 } from "lucide-react";
 import { bookingsApi } from "../services/api";
-import toast from "react-hot-toast";
+import {
+  showError,
+  showSuccess,
+  showWarning,
+} from "../utils/errorNotifications";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -23,6 +27,8 @@ const BookingModal: React.FC<BookingModalProps> = ({
   property,
   onSuccess,
 }) => {
+  console.log("🔍 BookingModal Debug - Property received:", property);
+  console.log("🔍 BookingModal Debug - Property ID:", property?.id);
   const [formData, setFormData] = useState({
     dealerCode: "",
     paymentRef: "",
@@ -56,17 +62,24 @@ const BookingModal: React.FC<BookingModalProps> = ({
     e.preventDefault();
 
     if (!formData.paymentRef.trim()) {
-      toast.error("Payment reference is required");
+      showError(new Error("Payment reference is required"), "booking");
       return;
     }
 
     if (formData.paymentRef.trim().length < 4) {
-      toast.error("Payment reference must be at least 4 characters");
+      showError(
+        new Error("Payment reference must be at least 4 characters"),
+        "booking"
+      );
       return;
     }
 
     setLoading(true);
     try {
+      console.log(
+        "🔍 BookingModal Debug - Submitting booking with property ID:",
+        property.id
+      );
       await bookingsApi.createBooking({
         propertyId: property.id,
         dealerCode: formData.dealerCode || undefined,
@@ -74,13 +87,14 @@ const BookingModal: React.FC<BookingModalProps> = ({
         paymentProof: paymentProof || undefined,
       });
 
-      toast.success(
-        "Booking submitted successfully! Admin will review and confirm."
+      showSuccess(
+        "Booking submitted successfully! Admin will review and confirm.",
+        "Booking Successful"
       );
       onSuccess?.();
       onClose();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to submit booking");
+      showError(error, "booking");
     } finally {
       setLoading(false);
     }
@@ -91,7 +105,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         // 5MB limit
-        toast.error("File size must be less than 5MB");
+        showError(new Error("File size must be less than 5MB"), "upload");
         return;
       }
       setPaymentProof(file);
@@ -177,10 +191,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
               <h4 className="font-semibold text-green-900 mb-2">Need Help?</h4>
               <div className="text-sm text-green-800 space-y-1">
                 <p>
-                  📞 Call: <strong>+91 7023176884</strong>
+                  📞 Call: <strong>+91 8112279602</strong>
                 </p>
                 <p>
-                  💬 WhatsApp: <strong>+91 7023176884</strong>
+                  💬 WhatsApp: <strong>+91 8112279602</strong>
                 </p>
                 <p>
                   📧 Email: <strong>bussiness.startup.work@gmail.com</strong>

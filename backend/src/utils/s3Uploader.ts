@@ -74,7 +74,9 @@ export class S3Uploader {
       // Validate file before upload
       this.validateImage(file);
 
-      const key = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
+      // Add environment prefix to separate dev/prod files
+      const envPrefix = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+      const key = `${envPrefix}/${folder}/${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
 
       if (s3 && BUCKET_NAME) {
         try {
@@ -85,7 +87,6 @@ export class S3Uploader {
             Key: key,
             Body: file.buffer,
             ContentType: file.mimetype,
-            ACL: 'public-read',
             Metadata: {
               originalName: file.originalname,
               uploadedAt: new Date().toISOString(),
@@ -116,7 +117,9 @@ export class S3Uploader {
       // Validate document before upload
       this.validateDocument(file);
 
-      const key = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
+      // Add environment prefix to separate dev/prod files
+      const envPrefix = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+      const key = `${envPrefix}/${folder}/${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
 
       if (s3 && BUCKET_NAME) {
         try {
@@ -127,7 +130,6 @@ export class S3Uploader {
             Key: key,
             Body: file.buffer,
             ContentType: file.mimetype,
-            ACL: 'public-read',
             Metadata: {
               originalName: file.originalname,
               uploadedAt: new Date().toISOString(),
@@ -155,7 +157,9 @@ export class S3Uploader {
 
   static async uploadFileLocally(file: Express.Multer.File, folder: string = 'general'): Promise<UploadResult> {
     try {
-      const uploadDir = path.join(process.cwd(), 'uploads', folder);
+      // Add environment prefix to separate dev/prod files
+      const envPrefix = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+      const uploadDir = path.join(process.cwd(), 'uploads', envPrefix, folder);
       
       // Create directory if it doesn't exist
       if (!fs.existsSync(uploadDir)) {
@@ -164,7 +168,7 @@ export class S3Uploader {
 
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
       const filePath = path.join(uploadDir, fileName);
-      const relativePath = path.join(folder, fileName);
+      const relativePath = path.join(envPrefix, folder, fileName);
 
       // Write file
       fs.writeFileSync(filePath, file.buffer);
@@ -236,10 +240,72 @@ export class S3Uploader {
       // S3 URL
       const urlParts = url.split('.com/');
       return urlParts[1] || '';
-    } else {
+    } else if (url.startsWith('/uploads/')) {
       // Local URL
       const urlParts = url.split('/uploads/');
       return urlParts[1] || '';
+    } else {
+      // External URL (like Unsplash, etc.) - return empty string to skip deletion
+      console.log(`⚠️  Skipping deletion of external URL: ${url}`);
+      return '';
+    }
+  }
+
+  // Clean up old images from property updates
+  static async cleanupOldPropertyImages(oldMediaUrls: string[], newMediaUrls: string[]): Promise<void> {
+    try {
+      if (!oldMediaUrls || oldMediaUrls.length === 0) return;
+
+      // Parse old and new media URLs
+      const oldUrls = Array.isArray(oldMediaUrls) ? oldMediaUrls : JSON.parse(oldMediaUrls || '[]');
+      const newUrls = Array.isArray(newMediaUrls) ? newMediaUrls : JSON.parse(newMediaUrls || '[]');
+
+      // Find URLs that are no longer in the new list
+      const urlsToDelete = oldUrls.filter((url: string) => !newUrls.includes(url));
+
+      if (urlsToDelete.length > 0) {
+        console.log(`🗑️ Cleaning up ${urlsToDelete.length} old property images`);
+        const keysToDelete = urlsToDelete
+          .map((url: string) => this.extractKeyFromUrl(url))
+          .filter(Boolean);
+
+        if (keysToDelete.length > 0) {
+          await this.deleteMultipleFiles(keysToDelete);
+          console.log(`✅ Cleaned up ${keysToDelete.length} old property images`);
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up old property images:', error);
+      // Don't throw error to avoid breaking property updates
+    }
+  }
+
+  // Clean up old documents from property updates
+  static async cleanupOldPropertyDocuments(oldDocuments: string[], newDocuments: string[]): Promise<void> {
+    try {
+      if (!oldDocuments || oldDocuments.length === 0) return;
+
+      // Parse old and new document URLs
+      const oldUrls = Array.isArray(oldDocuments) ? oldDocuments : JSON.parse(oldDocuments || '[]');
+      const newUrls = Array.isArray(newDocuments) ? newDocuments : JSON.parse(newDocuments || '[]');
+
+      // Find URLs that are no longer in the new list
+      const urlsToDelete = oldUrls.filter((url: string) => !newUrls.includes(url));
+
+      if (urlsToDelete.length > 0) {
+        console.log(`🗑️ Cleaning up ${urlsToDelete.length} old property documents`);
+        const keysToDelete = urlsToDelete
+          .map((url: string) => this.extractKeyFromUrl(url))
+          .filter(Boolean);
+
+        if (keysToDelete.length > 0) {
+          await this.deleteMultipleFiles(keysToDelete);
+          console.log(`✅ Cleaned up ${keysToDelete.length} old property documents`);
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up old property documents:', error);
+      // Don't throw error to avoid breaking property updates
     }
   }
 } 

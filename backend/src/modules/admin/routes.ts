@@ -4,18 +4,11 @@ import { body, validationResult } from 'express-validator';
 import { AdminService } from './service';
 import { authMiddleware } from '../auth/middleware';
 import { AuthenticatedRequest } from '../auth/types';
+import { S3Uploader } from '../../utils/s3Uploader';
 
-// Configure multer for profile picture uploads
+// Configure multer for profile picture uploads (memory storage for S3)
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, 'uploads/profiles/');
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + '-' + file.originalname);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit for profile pictures
   },
@@ -28,17 +21,9 @@ const upload = multer({
   },
 });
 
-// Configure multer for aadhaar image uploads
+// Configure multer for aadhaar image uploads (memory storage for S3)
 const aadhaarUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, 'uploads/aadhaar/');
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + '-' + file.originalname);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit for aadhaar images
   },
@@ -281,7 +266,18 @@ router.post('/users/:userId/profile-picture', authMiddleware(['ADMIN']), upload.
     }
 
     const { userId } = req.params;
-    const profilePicUrl = `/uploads/profiles/${req.file.filename}`;
+    
+    let profilePicUrl = null;
+    try {
+      const uploadResult = await S3Uploader.uploadFile(req.file, 'profiles');
+      profilePicUrl = uploadResult.url;
+    } catch (uploadError) {
+      console.error('Failed to upload profile picture to S3:', uploadError);
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to upload profile picture',
+      });
+    }
 
     const result = await AdminService.updateUserProfilePicture(userId, profilePicUrl);
 
@@ -305,7 +301,18 @@ router.post('/users/:userId/aadhaar-image', authMiddleware(['ADMIN']), aadhaarUp
     }
 
     const { userId } = req.params;
-    const aadhaarImageUrl = `/uploads/aadhaar/${req.file.filename}`;
+    
+    let aadhaarImageUrl = null;
+    try {
+      const uploadResult = await S3Uploader.uploadDocument(req.file, 'aadhaar');
+      aadhaarImageUrl = uploadResult.url;
+    } catch (uploadError) {
+      console.error('Failed to upload aadhaar image to S3:', uploadError);
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to upload aadhaar image',
+      });
+    }
 
     const result = await AdminService.updateUserAadhaarImage(userId, aadhaarImageUrl);
 

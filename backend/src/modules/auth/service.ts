@@ -187,7 +187,7 @@ export class AuthService {
   }
 
   // Regular user login with email/password
-  static async login(request: LoginRequest): Promise<{ user: any }> {
+  static async login(request: LoginRequest): Promise<{ token: string; user: any }> {
     try {
       console.log('🔍 AuthService.login - Looking for email:', request.email.toLowerCase());
       
@@ -215,10 +215,19 @@ export class AuthService {
       }
 
       // Verify password
+      console.log('🔍 Password verification - Input password length:', request.password.length);
+      console.log('🔍 Password verification - Stored hash length:', user.password.length);
+      console.log('🔍 Password verification - Stored hash starts with:', user.password.substring(0, 10) + '...');
+      
       const isPasswordValid = await bcrypt.compare(request.password, user.password);
+      console.log('🔍 Password verification - Result:', isPasswordValid);
+      
       if (!isPasswordValid) {
+        console.log('❌ Password verification failed');
         throw createError('Invalid email or password', 401);
       }
+      
+      console.log('✅ Password verification successful');
 
       // Check if user is a dealer and if their approval status
       if (user.role === 'DEALER' && user.dealer) {
@@ -233,6 +242,7 @@ export class AuthService {
       const token = this.generateToken(user);
 
       return {
+        token,
         user: {
           id: user.id,
           email: user.email,
@@ -251,6 +261,8 @@ export class AuthService {
         },
       };
     } catch (error) {
+      console.log('❌ Login error details:', error);
+      
       if (error instanceof Error && error.message.includes('Invalid email or password')) {
         throw error;
       }
@@ -260,7 +272,13 @@ export class AuthService {
       if (error instanceof Error && error.message.includes('rejected')) {
         throw error;
       }
-      throw createError('Login failed', 500);
+      if (error instanceof Error && error.message.includes('blocked')) {
+        throw error;
+      }
+      
+      // Log the actual error for debugging
+      console.log('❌ Unexpected login error:', error);
+      throw createError(`Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
     }
   }
 
@@ -839,5 +857,85 @@ export class AuthService {
 
   private static generateReferralCode(): string {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
+  }
+
+  // Update profile picture with cleanup of old image
+  static async updateProfilePicture(userId: string, newProfilePicUrl: string): Promise<User> {
+    try {
+      // Get current user to check if they have an existing profile picture
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { profilePic: true }
+      });
+
+      if (!currentUser) {
+        throw createError('User not found', 404);
+      }
+
+      // Update the profile picture
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { profilePic: newProfilePicUrl },
+      });
+
+      // Clean up old profile picture if it exists and is different
+      if (currentUser.profilePic && currentUser.profilePic !== newProfilePicUrl) {
+        try {
+          const { S3Uploader } = await import('../../utils/s3Uploader');
+          const oldKey = S3Uploader.extractKeyFromUrl(currentUser.profilePic);
+          if (oldKey) {
+            await S3Uploader.deleteFile(oldKey);
+            console.log(`🗑️ Cleaned up old profile picture: ${oldKey}`);
+          }
+        } catch (cleanupError) {
+          console.error('Error cleaning up old profile picture:', cleanupError);
+          // Don't fail the update if cleanup fails
+        }
+      }
+
+      return updatedUser;
+    } catch (error) {
+      throw createError('Failed to update profile picture', 500);
+    }
+  }
+
+  // Update Aadhaar image with cleanup of old image
+  static async updateAadhaarImage(userId: string, newAadhaarImageUrl: string): Promise<User> {
+    try {
+      // Get current user to check if they have an existing Aadhaar image
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { aadhaarImage: true }
+      });
+
+      if (!currentUser) {
+        throw createError('User not found', 404);
+      }
+
+      // Update the Aadhaar image
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { aadhaarImage: newAadhaarImageUrl },
+      });
+
+      // Clean up old Aadhaar image if it exists and is different
+      if (currentUser.aadhaarImage && currentUser.aadhaarImage !== newAadhaarImageUrl) {
+        try {
+          const { S3Uploader } = await import('../../utils/s3Uploader');
+          const oldKey = S3Uploader.extractKeyFromUrl(currentUser.aadhaarImage);
+          if (oldKey) {
+            await S3Uploader.deleteFile(oldKey);
+            console.log(`🗑️ Cleaned up old Aadhaar image: ${oldKey}`);
+          }
+        } catch (cleanupError) {
+          console.error('Error cleaning up old Aadhaar image:', cleanupError);
+          // Don't fail the update if cleanup fails
+        }
+      }
+
+      return updatedUser;
+    } catch (error) {
+      throw createError('Failed to update Aadhaar image', 500);
+    }
   }
 } 

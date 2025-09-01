@@ -69,7 +69,17 @@ export class BookingService {
   static async createManualBooking(data: CreateManualBookingData): Promise<any> {
     const { propertyId, userId, dealerCode, paymentRef, paymentProof } = data;
 
+    console.log('🔍 Booking Debug - Property ID:', propertyId);
+    console.log('🔍 Booking Debug - User ID:', userId);
+
     const property = await prisma.property.findUnique({ where: { id: propertyId } });
+    console.log('🔍 Booking Debug - Property found:', !!property);
+    if (property) {
+      console.log('🔍 Booking Debug - Property title:', property.title);
+      console.log('🔍 Booking Debug - Property status:', property.status);
+      console.log('🔍 Booking Debug - Property ownerId:', property.ownerId);
+    }
+    
     if (!property) throw createError('Property not found', 404);
     if (property.status !== 'FREE') throw createError('Property is not available for booking', 400);
 

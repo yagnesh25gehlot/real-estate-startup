@@ -1,24 +1,24 @@
-import { Outlet } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import Header from './Header'
-import Footer from './Footer'
-import LoadingSpinner from './LoadingSpinner'
+import { Outlet } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import Header from "./Header";
+import Footer from "./Footer";
+import LoadingSpinner from "./LoadingSpinner";
 
 const Layout = () => {
-  const { loading } = useAuth()
+  const { loading } = useAuth();
 
   if (loading) {
-    return <LoadingSpinner />
+    return <LoadingSpinner />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8 overflow-x-hidden">
         <Outlet />
       </main>
       <Footer />
     </div>
-  )
-}
-export default Layout 
+  );
+};
+export default Layout;

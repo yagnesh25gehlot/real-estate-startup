@@ -77,6 +77,7 @@ interface PropertyFilters {
 
   // Location Details
   city: string;
+  state: string;
   locality: string;
   landmark: string;
   minLatitude?: number;
@@ -192,6 +193,7 @@ const Properties: React.FC = () => {
 
     // Location Details
     city: searchParams.get("city") || "",
+    state: searchParams.get("state") || "",
     locality: searchParams.get("locality") || "",
     landmark: searchParams.get("landmark") || "",
     minLatitude: searchParams.get("minLatitude")
@@ -226,6 +228,7 @@ const Properties: React.FC = () => {
       const params: any = {
         page: currentPage,
         limit: 12,
+        _t: Date.now(), // Cache busting parameter
       };
 
       // Add all filter parameters
@@ -247,6 +250,13 @@ const Properties: React.FC = () => {
       });
 
       const response = await propertiesApi.getAll(params);
+
+      console.log("🔍 Properties API Response:", {
+        success: response.data.success,
+        propertiesCount: response.data.data?.properties?.length || 0,
+        totalProperties: response.data.data?.pagination?.total || 0,
+        properties: response.data.data?.properties || [],
+      });
 
       if (response.data.success) {
         const result = response.data.data;
@@ -331,6 +341,7 @@ const Properties: React.FC = () => {
       amenities: [],
       additionalAmenities: "",
       city: "",
+      state: "",
       locality: "",
       landmark: "",
       minLatitude: undefined,
@@ -356,7 +367,10 @@ const Properties: React.FC = () => {
     const parts = [];
     if (filters.action) parts.push(filters.action);
     if (filters.type) parts.push(filters.type);
-    if (filters.location) parts.push(`in ${filters.location}`);
+    if (filters.city) parts.push(`in ${filters.city}`);
+    if (filters.state && !filters.city) parts.push(`in ${filters.state}`);
+    if (filters.location && !filters.city && !filters.state)
+      parts.push(`in ${filters.location}`);
     return parts.length > 0
       ? `${parts.join(" ")} Properties`
       : "All Properties";
@@ -400,6 +414,18 @@ const Properties: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-3">
+                {/* Refresh Button */}
+                <button
+                  onClick={fetchProperties}
+                  disabled={isLoading}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+                  title="Refresh properties"
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+                  />
+                </button>
+
                 {/* View Mode Toggle */}
                 <div className="flex bg-gray-100 rounded-lg p-1">
                   <button

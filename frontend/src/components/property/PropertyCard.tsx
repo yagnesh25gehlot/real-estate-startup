@@ -9,7 +9,16 @@ interface PropertyCardProps {
     description: string;
     type: string;
     action?: string;
-    location: string;
+    // New address fields
+    city?: string;
+    state?: string;
+    pincode?: string;
+    locality?: string;
+    street?: string;
+    landmark?: string;
+    subRegion?: string;
+    // Legacy fields
+    location?: string;
     price?: number;
     perMonthCharges?: number;
     area?: number;
@@ -74,9 +83,9 @@ const PropertyCard = ({ property, viewMode = "grid" }: PropertyCardProps) => {
     return (
       <Link to={`/property/${property.id}`} className="block">
         <div className="bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-shadow duration-200">
-          <div className="flex">
+          <div className="flex flex-col sm:flex-row">
             {/* Property Image */}
-            <div className="relative w-64 h-48 flex-shrink-0">
+            <div className="relative w-32 sm:w-48 md:w-64 h-32 sm:h-40 md:h-48 flex-shrink-0">
               <img
                 src={imageUrl}
                 alt={property.title}
@@ -98,19 +107,24 @@ const PropertyCard = ({ property, viewMode = "grid" }: PropertyCardProps) => {
             </div>
 
             {/* Property Details */}
-            <div className="flex-1 p-6">
-              <div className="flex justify-between items-start mb-4">
+            <div className="flex-1 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-2">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
                     {property.title}
                   </h3>
                   <div className="flex items-center text-gray-600 mb-2">
                     <MapPin className="w-4 h-4 mr-1" />
-                    <span>{property.location}</span>
+                    <span className="text-sm sm:text-base">
+                      {property.locality && `${property.locality}, `}
+                      {property.city && `${property.city}, `}
+                      {property.state}
+                      {property.pincode && ` - ${property.pincode}`}
+                    </span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
                     {property.price ? (
                       <>
                         <IndianRupee className="inline w-5 h-5" />
@@ -129,38 +143,42 @@ const PropertyCard = ({ property, viewMode = "grid" }: PropertyCardProps) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-4">
                 {property.area && (
                   <div className="text-center">
-                    <div className="text-lg font-semibold text-gray-900">
+                    <div className="text-sm sm:text-lg font-semibold text-gray-900">
                       {property.area} sq ft
                     </div>
-                    <div className="text-sm text-gray-600">Area</div>
+                    <div className="text-xs sm:text-sm text-gray-600">Area</div>
                   </div>
                 )}
                 {property.bhk && (
                   <div className="text-center">
-                    <div className="text-lg font-semibold text-gray-900">
+                    <div className="text-sm sm:text-lg font-semibold text-gray-900">
                       {property.bhk} BHK
                     </div>
-                    <div className="text-sm text-gray-600">Configuration</div>
+                    <div className="text-xs sm:text-sm text-gray-600">
+                      Configuration
+                    </div>
                   </div>
                 )}
                 {property.furnishingStatus && (
                   <div className="text-center">
-                    <div className="text-lg font-semibold text-gray-900">
+                    <div className="text-sm sm:text-lg font-semibold text-gray-900">
                       {property.furnishingStatus}
                     </div>
-                    <div className="text-sm text-gray-600">Furnishing</div>
+                    <div className="text-xs sm:text-sm text-gray-600">
+                      Furnishing
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-500">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
+                <div className="text-xs sm:text-sm text-gray-500">
                   Listed by {property.owner?.name || "Owner"}
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className="text-xs sm:text-sm text-gray-500">
                   {formatDate(property.createdAt)}
                 </div>
               </div>

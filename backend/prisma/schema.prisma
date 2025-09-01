@@ -50,10 +50,27 @@ model Property {
   description String
   type        String   // HOUSE, PLOT, etc.
   action      String   @default("SELL") // RENT, LEASE, SELL
-  location    String?  // City/Location (optional)
-  address     String   // Detailed address (required)
-  latitude    Float?   // GPS coordinates
-  longitude   Float?   // GPS coordinates
+  // Basic address fields
+  city        String   @default("") // City (Mandatory)
+  state       String   @default("") // State (Mandatory)
+  pincode     String?  // Pincode (Optional)
+  locality    String   @default("") // Locality/Area/Layout (Mandatory)
+  street      String?  // Street/Road (Optional)
+  landmark    String?  // Landmark (Optional)
+  subRegion   String?  // Sub-region/Zone (Optional)
+  
+  // Property type specific fields
+  flatNumber  String?  // Flat/Door Number (Optional) - for Apartment/House/Villa
+  buildingName String? // Building/Apartment Name (Optional) - for Apartment/House/Villa
+  shopNumber  String?  // Shop/Unit Number (Optional) - for Shop/Commercial
+  complexName String?  // Complex/Market Name (Optional) - for Shop/Commercial
+  plotNumber  String?  // Plot/Survey Number (Optional) - for Plot/Land
+  
+  // Legacy fields (kept for backward compatibility)
+  location    String?  // City/Location (optional) - deprecated
+  address     String?  // Detailed address (optional) - deprecated
+  latitude    Float?   // GPS coordinates (hidden from UI)
+  longitude   Float?   // GPS coordinates (hidden from UI)
   price       Float?
   area        Float?   // Area in square feet
   dimensions  String?  // Property dimensions
@@ -159,4 +176,15 @@ model Notification {
   type      String   // INFO, SUCCESS, WARNING, ERROR
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model Inquiry {
+  id          String   @id @default(uuid())
+  message     String
+  mobileNumber String
+  status      String   @default("PENDING") // PENDING, RESPONDED, CLOSED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("Inquiry")
 } 

@@ -11,6 +11,7 @@ import bookingRoutes from './modules/booking/routes';
 import dealerRoutes from './modules/commission/routes';
 import adminRoutes from './modules/admin/routes';
 import notificationRoutes from './modules/notification/routes';
+import inquiryRoutes from './modules/inquiries/routes';
 
 // Import middleware
 import { errorHandler } from './utils/errorHandler';
@@ -215,6 +216,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/dealers', dealerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/inquiries', inquiryRoutes);
 
 // Serve frontend static files in production
 if (config.isProduction) {

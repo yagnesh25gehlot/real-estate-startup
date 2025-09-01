@@ -33,13 +33,18 @@ export const authMiddleware = (allowedRoles?: string[]) => {
         console.log('🔍 Auth middleware - No user found from header, using admin user');
         realUser = await prisma.user.findFirst({
           where: { 
-            email: 'bussiness.startup.work@gmail.com' // Use the admin user for MVP testing
+            email: 'yagneshgehlot2000@gmail.com' // Use the existing user in local database
           },
           include: {
             dealer: true
           }
         });
         console.log('🔍 Auth middleware - Using admin user:', realUser?.email, realUser?.id);
+      }
+      
+      // Ensure we're using the correct user ID from database
+      if (realUser) {
+        console.log('🔍 Auth middleware - Final user ID being used:', realUser.id);
       }
       
       if (realUser) {
@@ -110,7 +115,7 @@ export const optionalAuth = async (req: AuthenticatedRequest, res: Response, nex
     if (!realUser) {
       realUser = await prisma.user.findFirst({
         where: { 
-          email: 'bussiness.startup.work@gmail.com' // Use the admin user for MVP testing
+          email: 'yagneshgehlot2000@gmail.com' // Use the existing user in local database
         },
         include: {
           dealer: true

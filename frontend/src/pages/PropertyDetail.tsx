@@ -146,6 +146,9 @@ const PropertyDetail = () => {
   }
 
   const prop = property.data || property;
+  console.log("🔍 PropertyDetail Debug - Property object:", property);
+  console.log("🔍 PropertyDetail Debug - Prop object:", prop);
+  console.log("🔍 PropertyDetail Debug - Prop ID:", prop?.id);
   const calculatedBookingCharges = calculateBookingCharges(prop);
 
   const getImageUrl = (url: string) => {
@@ -412,7 +415,37 @@ const PropertyDetail = () => {
                   City
                 </label>
                 <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
-                  {prop.location}
+                  {prop.city || "Not specified"}
+                </div>
+              </div>
+
+              {/* State */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  State
+                </label>
+                <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
+                  {prop.state || "Not specified"}
+                </div>
+              </div>
+
+              {/* Pincode */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pincode
+                </label>
+                <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
+                  {prop.pincode || "Not specified"}
+                </div>
+              </div>
+
+              {/* Locality/Area/Layout */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Locality/Area/Layout
+                </label>
+                <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
+                  {prop.locality || "Not specified"}
                 </div>
               </div>
 
@@ -434,28 +467,6 @@ const PropertyDetail = () => {
                 </div>
               </div>
             </div>
-
-            {/* Address */}
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
-              </label>
-              <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
-                {prop.address}
-              </div>
-            </div>
-
-            {/* Location Coordinates */}
-            {prop.latitude && prop.longitude && (
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location Coordinates
-                </label>
-                <div className="w-full px-3 py-2 bg-green-50 border border-green-300 rounded-md text-green-800">
-                  Latitude: {prop.latitude}, Longitude: {prop.longitude}
-                </div>
-              </div>
-            )}
 
             {/* Registered As Description */}
             {prop.registeredAs === "OTHER" && prop.registeredAsDescription && (
@@ -846,7 +857,7 @@ const PropertyDetail = () => {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   Call Us
                 </h3>
-                <p className="text-gray-600">+91 7023176884</p>
+                <p className="text-gray-600">+91 8112279602</p>
                 <p className="text-sm text-gray-500">Available 24/7</p>
               </div>
 

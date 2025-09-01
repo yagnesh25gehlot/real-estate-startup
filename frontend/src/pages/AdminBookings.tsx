@@ -24,6 +24,7 @@ import {
 import { bookingsApi } from "../services/api";
 import LoadingSpinner from "../components/LoadingSpinner";
 import toast from "react-hot-toast";
+import { getImageUrl } from "../utils/imageUtils";
 
 const AdminBookings = () => {
   const navigate = useNavigate();
@@ -905,14 +906,7 @@ This will cancel the confirmed booking and make the property available again.`;
                           Payment proof uploaded by user:
                         </p>
                         <a
-                          href={
-                            import.meta.env.PROD
-                              ? `${window.location.origin}${selectedBooking.paymentProof}`
-                              : `${
-                                  import.meta.env.VITE_API_URL ||
-                                  "http://localhost:3001"
-                                }${selectedBooking.paymentProof}`
-                          }
+                          href={getImageUrl(selectedBooking.paymentProof)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 underline font-medium"
