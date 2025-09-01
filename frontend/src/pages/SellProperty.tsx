@@ -187,32 +187,34 @@ const SellProperty = () => {
     }
 
     // Validate required fields
+    // Enhanced validation with better mobile-friendly error messages
+    const errors: string[] = [];
+    
     if (!formData.title.trim()) {
-      toast.error("Property title is required");
-      return;
+      errors.push("Property title is required");
     }
     if (!formData.type) {
-      toast.error("Property type is required");
-      return;
+      errors.push("Property type is required");
     }
     if (!formData.price || parseFloat(formData.price) <= 0) {
-      toast.error("Valid price is required");
-      return;
+      errors.push("Valid price is required");
     }
     if (!formData.description.trim()) {
-      toast.error("Property description is required");
-      return;
+      errors.push("Property description is required");
     }
     if (!formData.city.trim()) {
-      toast.error("City is required");
-      return;
+      errors.push("City is required");
     }
     if (!formData.state.trim()) {
-      toast.error("State is required");
-      return;
+      errors.push("State is required");
     }
     if (!formData.locality.trim()) {
-      toast.error("Locality/Area/Layout is required");
+      errors.push("Locality/Area/Layout is required");
+    }
+    
+    if (errors.length > 0) {
+      // Show all errors at once for better mobile UX
+      toast.error(`Please fix the following: ${errors.join(', ')}`);
       return;
     }
 
@@ -302,25 +304,25 @@ const SellProperty = () => {
         <title>List Your Property - Property Platform</title>
       </Helmet>
 
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             List Your Property
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">
             Reach thousands of potential buyers and renters
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Building2 className="h-5 w-5 mr-2" />
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
+              <Building2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Basic Information
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Property Title <span className="text-red-500">*</span>
@@ -331,7 +333,7 @@ const SellProperty = () => {
                   required
                   value={formData.title}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   placeholder="e.g., Beautiful 3-bedroom house in downtown"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -348,7 +350,7 @@ const SellProperty = () => {
                   required
                   value={formData.type}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                 >
                   <option value="">Select property type</option>
                   <option value="HOUSE">House</option>
@@ -374,7 +376,7 @@ const SellProperty = () => {
                   step="0.01"
                   value={formData.price}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   placeholder="Enter price"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -392,7 +394,7 @@ const SellProperty = () => {
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   placeholder="e.g., Mumbai, Delhi, Bangalore"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -422,9 +424,9 @@ const SellProperty = () => {
           </div>
 
           {/* Location Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <MapPin className="h-5 w-5 mr-2" />
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
+              <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Location Details
             </h2>
 
@@ -440,7 +442,7 @@ const SellProperty = () => {
                 type="button"
                 onClick={getCurrentLocation}
                 disabled={isGettingLocation}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base"
               >
                 {isGettingLocation ? (
                   <>
@@ -466,7 +468,7 @@ const SellProperty = () => {
                 Basic Information
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     City <span className="text-red-500">*</span>
@@ -477,7 +479,7 @@ const SellProperty = () => {
                     required
                     value={formData.city}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                     placeholder="e.g., Bangalore, Mumbai, Delhi"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -495,7 +497,7 @@ const SellProperty = () => {
                     required
                     value={formData.state}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                     placeholder="e.g., Karnataka, Maharashtra, Delhi"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -513,7 +515,7 @@ const SellProperty = () => {
                     name="pincode"
                     value={formData.pincode}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                     placeholder="e.g., 560001"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -737,14 +739,14 @@ const SellProperty = () => {
             <div className="space-y-4">
               <div
                 {...getRootProps()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center cursor-pointer transition-colors ${
                   isDragActive
                     ? "border-blue-500 bg-blue-50"
                     : "border-gray-300 hover:border-gray-400"
                 }`}
               >
                 <input {...getInputProps()} />
-                <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <Upload className="h-8 w-8 sm:h-12 sm:w-12 mx-auto text-gray-400 mb-4" />
                 {isDragActive ? (
                   <p className="text-blue-600">Drop the images here...</p>
                 ) : (
@@ -765,7 +767,7 @@ const SellProperty = () => {
                   <h3 className="text-lg font-medium text-gray-900 mb-4">
                     Uploaded Images ({uploadedFiles.length}/5)
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
                     {uploadedFiles.map((file, index) => (
                       <div key={index} className="relative group">
                         <img
@@ -792,18 +794,18 @@ const SellProperty = () => {
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex justify-end space-x-4">
+          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="px-6 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500"
+              className="px-6 py-3 sm:py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500 text-base"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="px-6 py-3 sm:py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-base"
             >
               {isSubmitting ? (
                 <>
